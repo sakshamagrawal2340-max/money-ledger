@@ -436,6 +436,7 @@ input[type="range"].ml-split-slider {
 .ml-ledger-meta span.online-c { color: var(--online); }
 .ml-ledger-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .ml-ledger-total { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 14px; }
+.ml-ledger-inr { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 .ml-amt { font-family: 'IBM Plex Mono', monospace; text-align: right; white-space: nowrap; }
 .ml-amt.cash-c { color: var(--cash); }
 .ml-amt.online-c { color: var(--online); }
@@ -473,6 +474,16 @@ input[type="range"].ml-split-slider {
 }
 .ml-reset:hover { color: var(--danger); border-color: var(--danger); }
 .ml-status { font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.ml-live-rate-bar {
+  font-size: 12px;
+  color: var(--gold);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-family: 'IBM Plex Mono', monospace;
+}
 .ml-status.err { color: var(--danger); }
 .ml-status-retry {
   font-size: 11px;
@@ -764,6 +775,26 @@ input[type="range"].ml-split-slider {
       </div>
     </div>
 
+    <div class="ml-change-pin-modal" id="mlChangeCurrencyModal">
+      <div class="ml-change-pin-card">
+        <h2 class="ml-form-title">Change currency</h2>
+        <div class="ml-sub" style="margin-bottom:12px;">Changes how amounts are labeled and converted to ₹ for you — it doesn't touch anyone else's account.</div>
+        <div class="ml-field" style="margin-bottom:10px;">
+          <label for="mlChangeCurrencyInput">Currency</label>
+          <select id="mlChangeCurrencyInput"></select>
+        </div>
+        <div class="ml-field" id="mlChangeCurrencyRateField" style="margin-bottom:14px; display:none;">
+          <label for="mlChangeCurrencyRate">Exchange rate to ₹1 <span style="text-transform:none; letter-spacing:0;">(approximate, you can edit)</span></label>
+          <input type="number" step="0.01" min="0.01" id="mlChangeCurrencyRate" placeholder="e.g. 68" />
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="ml-submit" id="mlChangeCurrencySaveBtn" style="flex:1;">Save currency</button>
+          <button type="button" class="ml-reset" id="mlChangeCurrencyCancelBtn">Cancel</button>
+        </div>
+        <div class="ml-form-msg" id="mlChangeCurrencyErr"></div>
+      </div>
+    </div>
+
     <div class="ml-love-popup" id="mlLovePopup">
       <div class="ml-love-hearts" id="mlLoveHearts"></div>
       <div class="ml-love-card">
@@ -794,6 +825,18 @@ input[type="range"].ml-split-slider {
         </div>
 
         <div id="mlHintFields" style="display:none;">
+          <div class="ml-row">
+            <div class="ml-field" style="flex:1;">
+              <label for="mlSignupCurrency">Currency <span style="text-transform:none; letter-spacing:0;">(defaults to ₹ INR)</span></label>
+              <select id="mlSignupCurrency"></select>
+            </div>
+          </div>
+          <div class="ml-row" id="mlSignupRateRow" style="display:none;">
+            <div class="ml-field" style="flex:1;">
+              <label for="mlSignupCurrencyRate">Exchange rate to ₹1 <span style="text-transform:none; letter-spacing:0;">(approximate, you can edit)</span></label>
+              <input type="number" step="0.01" min="0.01" id="mlSignupCurrencyRate" placeholder="e.g. 68" />
+            </div>
+          </div>
           <div class="ml-row">
             <div class="ml-field" style="flex:1;">
               <label for="mlHintQuestion">Security hint question <span style="text-transform:none; letter-spacing:0;">(optional, for PIN recovery)</span></label>
@@ -844,6 +887,7 @@ input[type="range"].ml-split-slider {
           <div class="ml-profile-dropdown" id="mlProfileDropdown">
             <div class="ml-profile-dropdown-name">👤 <span id="mlCurrentUserLabel"></span></div>
             <button type="button" class="ml-profile-dropdown-item" id="mlChangePinOpenBtn">🔑 Change PIN</button>
+            <button type="button" class="ml-profile-dropdown-item" id="mlChangeCurrencyOpenBtn">💱 Change currency</button>
             <button type="button" class="ml-profile-dropdown-item" id="mlSwitchUser">🔀 Switch account</button>
             <button type="button" class="ml-profile-dropdown-item" id="mlLogoutBtn">🚪 Logout</button>
           </div>
@@ -851,6 +895,8 @@ input[type="range"].ml-split-slider {
         <div class="ml-stamp">Balanced Books</div>
       </div>
     </div>
+
+    <div id="mlLiveRateBar" class="ml-live-rate-bar" style="display:none;"></div>
 
     <div id="mlStatus" class="ml-status"><span id="mlStatusMsg">Loading your ledger…</span><button type="button" id="mlStatusRetry" class="ml-status-retry" style="display:none;">Retry now</button></div>
 
@@ -932,7 +978,7 @@ input[type="range"].ml-split-slider {
             </div>
           </div>
           <div class="ml-field">
-            <label for="mlAmount">Total amount (₹)</label>
+            <label for="mlAmount" id="mlAmountLabel">Total amount (₹)</label>
             <input type="number" id="mlAmount" min="0" step="0.01" placeholder="0.00" required />
           </div>
         </div>
@@ -1098,7 +1144,7 @@ input[type="range"].ml-split-slider {
               </div>
             </div>
             <div class="ml-field">
-              <label for="mlSavingsAmount">Amount (₹)</label>
+              <label for="mlSavingsAmount" id="mlSavingsAmountLabel">Amount (₹)</label>
               <input type="number" id="mlSavingsAmount" min="0" step="0.01" placeholder="0.00" required />
             </div>
             <div class="ml-field">
@@ -1180,11 +1226,14 @@ input[type="range"].ml-split-slider {
     const rows = await sbRequest('accounts?account_key=eq.' + encodeURIComponent(accountKey) + '&select=*', {}, 2);
     return rows && rows[0] ? rows[0] : null;
   }
-  async function createAccount(accountKey, name) {
+  async function createAccount(accountKey, name, currencySymbol, currencyRate) {
+    const body = { account_key: accountKey, name: name };
+    if (currencySymbol) body.currency_symbol = currencySymbol;
+    if (currencyRate) body.currency_rate_to_inr = currencyRate;
     const rows = await sbRequest('accounts', {
       method: 'POST',
       headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ account_key: accountKey, name: name })
+      body: JSON.stringify(body)
     });
     return rows[0];
   }
@@ -1193,6 +1242,13 @@ input[type="range"].ml-split-slider {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ account_key: newAccountKey })
+    });
+  }
+  async function updateAccountCurrency(accountId, currencySymbol, currencyRate) {
+    await sbRequest('accounts?id=eq.' + accountId, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ currency_symbol: currencySymbol, currency_rate_to_inr: currencyRate })
     });
   }
 
@@ -1290,6 +1346,59 @@ input[type="range"].ml-split-slider {
     });
   }
 
+  const CURRENCY_OPTIONS = [
+    { symbol: '₹', code: 'INR', label: '₹ INR — Indian Rupee', rate: 1 },
+    { symbol: '$', code: 'USD', label: '$ USD — US Dollar', rate: 96 },
+    { symbol: 'A$', code: 'AUD', label: 'A$ AUD — Australian Dollar', rate: 68 },
+    { symbol: '€', code: 'EUR', label: '€ EUR — Euro', rate: 103 },
+    { symbol: '£', code: 'GBP', label: '£ GBP — British Pound', rate: 122 },
+    { symbol: 'C$', code: 'CAD', label: 'C$ CAD — Canadian Dollar', rate: 70 },
+    { symbol: 'S$', code: 'SGD', label: 'S$ SGD — Singapore Dollar', rate: 75 },
+    { symbol: 'AED', code: 'AED', label: 'AED — UAE Dirham', rate: 26 }
+  ];
+
+  function codeForSymbol(sym) {
+    const opt = CURRENCY_OPTIONS.find((o) => o.symbol === sym);
+    return opt ? opt.code : 'INR';
+  }
+
+  // ---------- Live exchange rates (open.er-api.com, updates once every 24h) ----------
+  let liveRates = null;
+  const RATES_CACHE_KEY = 'moneyLedgerRatesCache';
+  async function fetchLiveRates() {
+    try {
+      const cached = localStorage.getItem(RATES_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.fetchedAt < 24 * 60 * 60 * 1000) {
+          liveRates = parsed.rates;
+          return;
+        }
+      }
+    } catch (e) { /* no cache yet, or unreadable — fall through to fetch */ }
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/INR');
+      const data = await res.json();
+      if (data && data.result === 'success' && data.rates) {
+        liveRates = data.rates;
+        try {
+          localStorage.setItem(RATES_CACHE_KEY, JSON.stringify({ rates: liveRates, fetchedAt: Date.now() }));
+        } catch (e) { /* caching is best-effort */ }
+        if (currentAccountId && currentCurrencySymbol !== '₹') { render(); renderSavings(); updateLiveRateBar(); }
+      }
+    } catch (e) {
+      // network/CORS failure — fall back to any stale cache we have, otherwise per-account saved rate is used
+      try {
+        const cached = localStorage.getItem(RATES_CACHE_KEY);
+        if (cached) liveRates = JSON.parse(cached).rates;
+      } catch (e2) { /* no fallback available */ }
+    }
+  }
+  function liveRateToInr(code) {
+    if (!liveRates || !liveRates[code] || code === 'INR') return null;
+    return 1 / liveRates[code];
+  }
+
   // ---------- App state ----------
   let currentAccountId = null;
   let currentAccountKey = null;
@@ -1304,7 +1413,56 @@ input[type="range"].ml-split-slider {
   let ledgerExpanded = false;
   let currentDir = 'cash-to-online';
 
-  const fmt = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+  let currentCurrencySymbol = '₹';
+  let currentCurrencyRate = 1;
+
+  function populateCurrencySelect(selectEl) {
+    selectEl.innerHTML = '';
+    CURRENCY_OPTIONS.forEach((c) => {
+      const opt = document.createElement('option');
+      opt.value = c.symbol;
+      opt.dataset.rate = c.rate;
+      opt.textContent = c.label;
+      selectEl.appendChild(opt);
+    });
+  }
+  populateCurrencySelect(document.getElementById('mlSignupCurrency'));
+  populateCurrencySelect(document.getElementById('mlChangeCurrencyInput'));
+
+  document.getElementById('mlSignupCurrency').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    const rateRow = document.getElementById('mlSignupRateRow');
+    if (opt.value === '₹') {
+      rateRow.style.display = 'none';
+    } else {
+      rateRow.style.display = 'block';
+      const live = liveRateToInr(codeForSymbol(opt.value));
+      document.getElementById('mlSignupCurrencyRate').value = live ? Math.round(live * 100) / 100 : opt.dataset.rate;
+    }
+  });
+
+  document.getElementById('mlChangeCurrencyInput').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    const rateField = document.getElementById('mlChangeCurrencyRateField');
+    if (opt.value === '₹') {
+      rateField.style.display = 'none';
+    } else {
+      rateField.style.display = 'block';
+      const live = liveRateToInr(codeForSymbol(opt.value));
+      document.getElementById('mlChangeCurrencyRate').value = live ? Math.round(live * 100) / 100 : opt.dataset.rate;
+    }
+  });
+
+  const fmt = (n) => currentCurrencySymbol + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+  const fmtInr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+  function inrLine(amount) {
+    if (currentCurrencySymbol === '₹') return '';
+    const code = codeForSymbol(currentCurrencySymbol);
+    const rate = liveRateToInr(code) || currentCurrencyRate;
+    if (!rate || rate === 1) return '';
+    const inrAmt = Math.round((amount || 0) * rate * 100) / 100;
+    return '<div class="ml-ledger-inr">≈ ' + fmtInr(inrAmt) + '</div>';
+  }
   function round2(n) { return Math.round(n * 100) / 100; }
 
   const statusEl = document.getElementById('mlStatus');
@@ -1349,6 +1507,9 @@ input[type="range"].ml-split-slider {
     currentAccountId = accountRow.id;
     currentAccountKey = accountRow.account_key;
     currentUserName = name.trim();
+    currentCurrencySymbol = accountRow.currency_symbol || '₹';
+    currentCurrencyRate = Number(accountRow.currency_rate_to_inr) || 1;
+    applyCurrencyLabels();
     const expiresAt = Date.now() + SESSION_DURATION_MS;
     try {
       localStorage.setItem(LASTUSER_KEY, JSON.stringify({ accountKey: currentAccountKey, name: currentUserName, expiresAt }));
@@ -1359,6 +1520,31 @@ input[type="range"].ml-split-slider {
     document.getElementById('mlCurrentUserLabel').textContent = currentUserName;
     await loadAllData();
     await maybeShowLovePopup();
+  }
+
+  function applyCurrencyLabels() {
+    const amtLabel = document.getElementById('mlAmountLabel');
+    if (amtLabel) amtLabel.textContent = 'Total amount (' + currentCurrencySymbol + ')';
+    const savAmtLabel = document.getElementById('mlSavingsAmountLabel');
+    if (savAmtLabel) savAmtLabel.textContent = 'Amount (' + currentCurrencySymbol + ')';
+    const monthCashInput = document.getElementById('mlMonthCashInput');
+    if (monthCashInput) monthCashInput.placeholder = 'Cash ' + currentCurrencySymbol;
+    const monthOnlineInput = document.getElementById('mlMonthOnlineInput');
+    if (monthOnlineInput) monthOnlineInput.placeholder = 'Online ' + currentCurrencySymbol;
+    updateLiveRateBar();
+  }
+
+  function updateLiveRateBar() {
+    const bar = document.getElementById('mlLiveRateBar');
+    if (!bar) return;
+    if (currentCurrencySymbol === '₹') { bar.style.display = 'none'; return; }
+    const code = codeForSymbol(currentCurrencySymbol);
+    const live = liveRateToInr(code);
+    const rate = live || currentCurrencyRate;
+    if (!rate) { bar.style.display = 'none'; return; }
+    const source = live ? "today's rate" : 'saved rate — live rate unavailable';
+    bar.textContent = '💱 1 ' + currentCurrencySymbol + ' ≈ ' + fmtInr(Math.round(rate * 100) / 100) + ' · ' + source;
+    bar.style.display = 'block';
   }
 
   function scheduleSessionTimeout(ms) {
@@ -1419,8 +1605,11 @@ input[type="range"].ml-split-slider {
         msg.textContent = 'An account with that name & PIN already exists. Tap "Sign in" above instead.';
         return;
       }
+      const currencySelect = document.getElementById('mlSignupCurrency');
+      const currencyInput = currencySelect.value;
+      const currencyRateVal = currencyInput === '₹' ? 1 : (Number(document.getElementById('mlSignupCurrencyRate').value) || currencySelect.selectedOptions[0].dataset.rate);
       try {
-        existing = await createAccount(accountKey, name.trim());
+        existing = await createAccount(accountKey, name.trim(), currencyInput || null, currencyRateVal);
       } catch (e) {
         msg.textContent = 'Could not create account — ' + describeError(e);
         return;
@@ -1493,9 +1682,15 @@ input[type="range"].ml-split-slider {
     document.getElementById('mlAppBody').style.display = 'none';
     document.getElementById('mlLoginScreen').style.display = 'flex';
     document.getElementById('mlLoginPin').value = '';
+    document.getElementById('mlSignupCurrency').value = '₹';
+    document.getElementById('mlSignupRateRow').style.display = 'none';
+    document.getElementById('mlHintQuestion').value = '';
+    document.getElementById('mlHintAnswer').value = '';
     currentAccountId = null;
     currentAccountKey = null;
     currentUserName = '';
+    currentCurrencySymbol = '₹';
+    currentCurrencyRate = 1;
   }
 
   // ---------- Profile hamburger menu ----------
@@ -1560,6 +1755,56 @@ input[type="range"].ml-split-slider {
   document.getElementById('mlChangePinCancelBtn').addEventListener('click', closeChangePinModal);
   changePinModal.addEventListener('click', (e) => {
     if (e.target.id === 'mlChangePinModal') closeChangePinModal();
+  });
+
+  // ---------- Change Currency ----------
+  const changeCurrencyModal = document.getElementById('mlChangeCurrencyModal');
+  function openChangeCurrencyModal() {
+    profileDropdown.classList.remove('open');
+    const select = document.getElementById('mlChangeCurrencyInput');
+    select.value = currentCurrencySymbol;
+    const rateField = document.getElementById('mlChangeCurrencyRateField');
+    if (currentCurrencySymbol === '₹') {
+      rateField.style.display = 'none';
+    } else {
+      rateField.style.display = 'block';
+      document.getElementById('mlChangeCurrencyRate').value = currentCurrencyRate;
+    }
+    document.getElementById('mlChangeCurrencyErr').textContent = '';
+    changeCurrencyModal.classList.add('active');
+  }
+  function closeChangeCurrencyModal() {
+    changeCurrencyModal.classList.remove('active');
+  }
+  document.getElementById('mlChangeCurrencyOpenBtn').addEventListener('click', openChangeCurrencyModal);
+  document.getElementById('mlChangeCurrencyCancelBtn').addEventListener('click', closeChangeCurrencyModal);
+  changeCurrencyModal.addEventListener('click', (e) => {
+    if (e.target.id === 'mlChangeCurrencyModal') closeChangeCurrencyModal();
+  });
+  document.getElementById('mlChangeCurrencySaveBtn').addEventListener('click', async () => {
+    const err = document.getElementById('mlChangeCurrencyErr');
+    const select = document.getElementById('mlChangeCurrencyInput');
+    const val = select.value;
+    const rateVal = val === '₹' ? 1 : (Number(document.getElementById('mlChangeCurrencyRate').value) || Number(select.selectedOptions[0].dataset.rate));
+    if (!val) { err.textContent = 'Choose a currency.'; return; }
+    if (val !== '₹' && (!rateVal || rateVal <= 0)) { err.textContent = 'Enter a valid exchange rate.'; return; }
+    err.textContent = 'Saving…';
+    try {
+      await updateAccountCurrency(currentAccountId, val, rateVal);
+    } catch (e) {
+      err.textContent = 'Could not save — ' + describeError(e);
+      return;
+    }
+    currentCurrencySymbol = val;
+    currentCurrencyRate = rateVal;
+    applyCurrencyLabels();
+    closeChangeCurrencyModal();
+    render();
+    renderSavings();
+    renderMonthCard();
+  });
+  document.getElementById('mlChangeCurrencyRate').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('mlChangeCurrencySaveBtn').click(); }
   });
 
   document.getElementById('mlChangePinSaveBtn').addEventListener('click', async () => {
@@ -1896,7 +2141,10 @@ input[type="range"].ml-split-slider {
           '<div class="ml-ledger-desc">' + escapeHtml(t.desc) + '</div>' +
           '<div class="ml-ledger-meta"><span>' + linkLabel + '</span></div>' +
           '<div class="ml-ledger-bottom">' +
-            '<span class="ml-ledger-total">' + fmt(t.amount) + '</span>' +
+            '<div>' +
+              '<span class="ml-ledger-total">' + fmt(t.amount) + '</span>' +
+              inrLine(t.amount) +
+            '</div>' +
             '<button class="ml-del" title="Delete entry" data-savid="' + t.id + '">✕</button>' +
           '</div>';
         tbody.appendChild(row);
@@ -2268,7 +2516,10 @@ input[type="range"].ml-split-slider {
           '<div class="ml-ledger-desc">' + escapeHtml(t.desc) + '</div>' +
           '<div class="ml-ledger-meta">' + metaParts.join('') + '</div>' +
           '<div class="ml-ledger-bottom">' +
-            '<span class="ml-ledger-total">' + fmt(t.total) + '</span>' +
+            '<div>' +
+              '<span class="ml-ledger-total">' + fmt(t.total) + '</span>' +
+              inrLine(t.total) +
+            '</div>' +
             '<button class="ml-del" title="Delete entry" data-id="' + t.id + '">✕</button>' +
           '</div>';
         tbody.appendChild(row);
@@ -2403,6 +2654,8 @@ input[type="range"].ml-split-slider {
   applyTypeUI();
   updateSplitVisual();
 
+  fetchLiveRates();
+
   (async function initAuth() {
     try {
       const raw = localStorage.getItem(LASTUSER_KEY);
@@ -2419,6 +2672,9 @@ input[type="range"].ml-split-slider {
               currentAccountId = row.id;
               currentAccountKey = row.account_key;
               currentUserName = saved.name || row.name;
+              currentCurrencySymbol = row.currency_symbol || '₹';
+              currentCurrencyRate = Number(row.currency_rate_to_inr) || 1;
+              applyCurrencyLabels();
               document.getElementById('mlLoginName').value = currentUserName;
               document.getElementById('mlLoginScreen').style.display = 'none';
               document.getElementById('mlAppBody').style.display = 'block';
