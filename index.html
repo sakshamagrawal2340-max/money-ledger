@@ -1,0 +1,3393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Money Ledger</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+.ml-root {
+  --paper: #14181A;
+  --paper-dark: #101315;
+  --card: #1E2528;
+  --ink: #EAE5D8;
+  --ink-soft: #8D968F;
+  --line: rgba(255,255,255,0.10);
+  --cash: #5CC08C;
+  --cash-soft: rgba(92,192,140,0.16);
+  --online: #77A6E0;
+  --online-soft: rgba(119,166,224,0.16);
+  --gold: #DDAE55;
+  --danger: #E5787A;
+  --danger-soft: rgba(229,120,122,0.16);
+  --month: #B491DD;
+  --month-soft: rgba(180,145,221,0.16);
+  --savings: #4FB8C4;
+  --savings-soft: rgba(79,184,196,0.16);
+
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px);
+  background-size: 100% 32px;
+  min-height: 100vh;
+  padding: 28px 18px 60px;
+  box-sizing: border-box;
+}
+
+.ml-root * { box-sizing: border-box; }
+
+.ml-wrap { max-width: 880px; margin: 0 auto; }
+
+/* ---------- Header ---------- */
+.ml-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.ml-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.ml-title {
+  font-family: 'Zilla Slab', serif;
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+.ml-title span { color: var(--gold); }
+.ml-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.ml-stamp {
+  font-family: 'Zilla Slab', serif;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transform: rotate(-8deg);
+  opacity: 0.85;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+/* ---------- Balance cards ---------- */
+.ml-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+@media (max-width: 900px) {
+  .ml-cards { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .ml-cards { grid-template-columns: 1fr; }
+}
+.ml-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.ml-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+}
+.ml-card.cash::before { background: var(--cash); }
+.ml-card.online::before { background: var(--online); }
+.ml-card.total::before { background: var(--gold); }
+.ml-card.month::before { background: var(--month); }
+.ml-card.month .ml-card-amount { font-size: 22px; }
+.ml-card.savings::before { background: var(--savings); }
+.ml-card-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.ml-card-amount {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 26px;
+  font-weight: 600;
+}
+.ml-breakdown {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.ml-edit-bal {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--ink-soft);
+  padding: 0 2px;
+}
+.ml-edit-bal:hover { color: var(--gold); }
+
+.ml-edit-row {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.ml-edit-row.active { display: flex; }
+.ml-edit-row input {
+  flex: 1 1 auto;
+  min-width: 80px;
+  max-width: 100%;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.ml-edit-ok, .ml-edit-cancel {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+.ml-edit-ok { color: var(--cash); border-color: var(--cash); }
+.ml-edit-ok:hover { background: var(--cash-soft); }
+.ml-edit-cancel { color: var(--danger); border-color: var(--danger); }
+.ml-edit-cancel:hover { background: var(--danger-soft); }
+.ml-edit-err { font-size: 11px; color: var(--danger); margin-top: 4px; min-height: 0; }
+.ml-edit-row-double { flex-wrap: wrap; }
+.ml-edit-double-inputs { display: flex; gap: 6px; flex: 1; min-width: 160px; }
+.ml-edit-double-inputs input { width: 50%; }
+
+.ml-transfer-box { display: none; margin-top: 4px; margin-bottom: 14px; }
+.ml-transfer-box.active { display: block; }
+.ml-transfer-dirs { display: flex; gap: 8px; margin-bottom: 4px; }
+.ml-dir-btn {
+  flex: 1;
+  padding: 10px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.ml-dir-btn.active { background: var(--online-soft); border-color: var(--gold); color: var(--ink); }
+.ml-hint { font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+
+/* ---------- Form ---------- */
+.ml-form-section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px 20px 20px;
+  margin-bottom: 22px;
+}
+.ml-form-title {
+  font-family: 'Zilla Slab', serif;
+  font-weight: 600;
+  font-size: 17px;
+  margin: 0 0 14px;
+}
+
+/* ---------- Monthly summary ---------- */
+.ml-summary-top { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+.ml-summary-stat { flex: 1; min-width: 100px; }
+.ml-summary-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+}
+.ml-summary-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 20px;
+  font-weight: 600;
+}
+.ml-progress-track {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.ml-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--gold);
+  transition: width 0.25s ease;
+}
+.ml-progress-fill.over { background: var(--danger); }
+.ml-category-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.ml-cat-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.ml-cat-name { width: 96px; flex-shrink: 0; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-cat-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.ml-cat-bar-fill { height: 100%; background: var(--online); }
+.ml-cat-amt { font-family: 'IBM Plex Mono', monospace; width: 84px; text-align: right; flex-shrink: 0; }
+
+/* ---------- Main tab bar (Transactions / Savings) ---------- */
+.ml-main-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+.ml-main-tab {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ml-main-tab.active { background: var(--online-soft); border-color: var(--gold); color: var(--ink); }
+
+.ml-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.ml-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+.ml-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-soft); }
+.ml-field input, .ml-field select {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.ml-field input:focus, .ml-field select:focus, .ml-type-btn:focus-visible, .ml-quick:focus-visible, .ml-submit:focus-visible, .ml-filters select:focus, .ml-filters input:focus, .ml-del:focus-visible, .ml-reset:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.ml-type-toggle { display: flex; gap: 8px; }
+.ml-type-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.ml-type-btn.active[data-type="income"] { background: var(--cash-soft); border-color: var(--cash); color: var(--cash); }
+.ml-type-btn.active[data-type="expense"] { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+.ml-type-btn.active[data-type="transfer"] { background: var(--online-soft); border-color: var(--gold); color: var(--ink); }
+.ml-type-btn.active[data-savtype="deposit"] { background: var(--cash-soft); border-color: var(--cash); color: var(--cash); }
+.ml-type-btn.active[data-savtype="withdrawal"] { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+
+/* Split control */
+.ml-split-box { margin-top: 4px; margin-bottom: 14px; }
+.ml-split-label-row { display: flex; justify-content: space-between; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-soft); margin-bottom: 8px; }
+.ml-split-bar {
+  display: flex;
+  height: 30px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  position: relative;
+}
+.ml-split-cash, .ml-split-online {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  transition: width 0.12s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ml-split-cash { background: var(--cash); }
+.ml-split-online { background: var(--online); }
+.ml-split-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: 0;
+  border-left: 2px dashed rgba(255,255,255,0.55);
+  pointer-events: none;
+}
+input[type="range"].ml-split-slider {
+  width: 100%;
+  margin-top: 10px;
+  accent-color: var(--gold);
+}
+.ml-quick-row { display: flex; gap: 8px; margin-top: 8px; }
+.ml-quick {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.ml-quick:hover { border-color: var(--gold); color: var(--gold); }
+
+.ml-submit {
+  background: var(--gold);
+  color: #1A1408;
+  border: none;
+  border-radius: 6px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+.ml-submit:hover { background: #EFC072; }
+.ml-form-msg { font-size: 12px; color: var(--danger); margin-top: 8px; min-height: 14px; }
+
+/* ---------- Ledger table ---------- */
+.ml-ledger-section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px 8px; }
+.ml-ledger-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.ml-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.ml-filters select, .ml-filters input {
+  font-size: 16px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+.ml-ledger-list { display: flex; flex-direction: column; }
+.ml-show-more {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.ml-show-more:hover { color: var(--gold); border-color: var(--gold); }
+.ml-day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ml-day-nav-arrow {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ml-day-nav-arrow:hover { border-color: var(--gold); color: var(--gold); }
+.ml-day-nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+.ml-day-nav-arrow:disabled:hover { border-color: var(--line); color: var(--ink); }
+.ml-day-nav-label {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  min-width: 140px;
+  text-align: center;
+}
+.ml-day-nav-label:hover { border-color: var(--gold); color: var(--gold); }
+.ml-day-nav-label.is-today { border-color: var(--gold); color: var(--gold); }
+.ml-calendar-card { max-width: 340px; }
+.ml-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ml-calendar-month-label { font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 17px; color: var(--ink); }
+.ml-calendar-nav-arrow {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 17px;
+  cursor: pointer;
+}
+.ml-calendar-nav-arrow:hover { border-color: var(--gold); color: var(--gold); }
+.ml-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 10px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.ml-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.ml-calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 2px;
+}
+.ml-calendar-day:hover { border-color: var(--gold); }
+.ml-calendar-day.is-today { border-color: var(--online); }
+.ml-calendar-day.is-selected { border-color: var(--gold); border-width: 2px; }
+.ml-calendar-day-amt { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: var(--ink-soft); line-height: 1.2; }
+.ml-calendar-day.is-blank { visibility: hidden; cursor: default; }
+.ml-calendar-day.is-future { color: var(--ink-soft); opacity: 0.35; cursor: not-allowed; }
+.ml-calendar-legend { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-soft); margin-top: 10px; }
+.ml-calendar-legend-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.ml-day-summary {
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 14px;
+}
+.ml-ledger-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.ml-ledger-list .ml-ledger-row:last-child { border-bottom: none; }
+.ml-ledger-row-top { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.ml-date-group { margin-bottom: 4px; }
+.ml-date-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 4px 6px;
+  border-top: 1px solid var(--line);
+}
+.ml-date-group:first-child .ml-date-group-header { border-top: none; padding-top: 0; }
+.ml-date-group-date { font-size: 12px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.5px; }
+.ml-date-group-spent { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--danger); }
+.ml-ledger-date { font-size: 12px; color: var(--ink-soft); }
+.ml-ledger-desc { font-size: 14px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.ml-ledger-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.ml-ledger-meta span.cash-c { color: var(--cash); }
+.ml-ledger-meta span.online-c { color: var(--online); }
+.ml-ledger-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ml-ledger-total { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 14px; }
+.ml-ledger-inr { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+.ml-amt { font-family: 'IBM Plex Mono', monospace; text-align: right; white-space: nowrap; }
+.ml-amt.cash-c { color: var(--cash); }
+.ml-amt.online-c { color: var(--online); }
+.ml-badge {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ml-badge.income { background: var(--cash-soft); color: var(--cash); }
+.ml-badge.expense { background: var(--danger-soft); color: var(--danger); }
+.ml-badge.transfer { background: var(--paper-dark); color: var(--gold); }
+.ml-del {
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.ml-row-actions { display: flex; gap: 4px; align-items: center; }
+.ml-edit-entry {
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.ml-edit-entry:hover { color: var(--gold); }
+.ml-del:hover { color: var(--danger); }
+.ml-empty { text-align: center; padding: 30px 10px; color: var(--ink-soft); font-size: 13px; }
+.ml-footer-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 2px; }
+.ml-count { font-size: 11px; color: var(--ink-soft); }
+.ml-reset {
+  font-size: 11px;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ml-reset:hover { color: var(--danger); border-color: var(--danger); }
+.ml-status { font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.ml-live-rate-bar {
+  font-size: 12px;
+  color: var(--gold);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.ml-status.err { color: var(--danger); }
+.ml-status-retry {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ml-status-retry:hover { background: var(--danger); color: var(--card); }
+
+/* ---------- Login gate ---------- */
+.ml-login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+}
+.ml-login-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 28px 26px;
+  max-width: 420px;
+  width: 100%;
+}
+.ml-profile-menu-wrap {
+  position: relative;
+  align-self: center;
+}
+.ml-hamburger-btn {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.ml-hamburger-btn:hover { border-color: var(--gold); color: var(--gold); }
+.ml-profile-dropdown {
+  display: none;
+  position: fixed;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-width: 190px;
+  max-width: calc(100vw - 24px);
+  padding: 6px;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.ml-profile-dropdown.open { display: block; }
+.ml-profile-dropdown-name {
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+.ml-profile-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ml-profile-dropdown-item:hover { background: var(--paper); color: var(--gold); }
+.ml-login-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.ml-login-tab {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ml-login-tab.active { background: var(--online-soft); border-color: var(--gold); color: var(--ink); }
+
+/* ---------- Mobile refinements ---------- */
+@media (max-width: 480px) {
+  .ml-root { padding: 16px 12px 50px; }
+  .ml-header { gap: 10px; flex-wrap: nowrap; align-items: center; }
+  .ml-header > div:first-child { flex: 1; min-width: 0; }
+  .ml-title { font-size: 21px; }
+  .ml-sub { font-size: 13px; }
+  .ml-header-right { flex-shrink: 0; margin-left: 0; }
+  .ml-stamp { display: none; }
+  .ml-main-tabs { gap: 6px; }
+  .ml-main-tab { font-size: 11px; padding: 10px 4px; }
+  .ml-card-amount { font-size: 20px; }
+  .ml-card { padding: 12px 14px; }
+}
+.ml-period-tabs { display: flex; gap: 8px; }
+.ml-period-tab {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ml-period-tab.active { background: var(--online-soft); border-color: var(--gold); color: var(--ink); }
+.ml-card.expense::before { background: var(--danger); }
+.ml-cvo-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.ml-cvo-item { flex: 1; min-width: 140px; }
+.ml-cvo-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-soft); margin-bottom: 6px; }
+.ml-cvo-bar-track {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.ml-cvo-bar-fill { height: 100%; width: 0%; transition: width 0.25s ease; }
+.ml-cvo-bar-fill.cash { background: var(--cash); }
+.ml-cvo-bar-fill.online { background: var(--online); }
+.ml-cvo-amt { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; }
+
+/* ---------- Pie chart (Spending / Income by category) ---------- */
+.ml-pie-wrap { display: flex; gap: 26px; flex-wrap: wrap; align-items: center; }
+.ml-pie-chart {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.ml-pie-center {
+  position: absolute;
+  inset: 24px;
+  border-radius: 50%;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.ml-pie-center-amt { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; }
+.ml-pie-center-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-soft); margin-top: 2px; }
+.ml-pie-legend { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 9px; }
+.ml-pie-legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ml-pie-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.ml-pie-legend-name { flex: 1; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-pie-legend-pct { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); width: 40px; text-align: right; flex-shrink: 0; }
+.ml-pie-legend-amt { font-family: 'IBM Plex Mono', monospace; font-weight: 600; width: 84px; text-align: right; flex-shrink: 0; }
+.ml-forgot-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 10px 0 2px;
+}
+.ml-forgot-link:hover { color: var(--gold); }
+.ml-recovery-panel {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+
+/* ---------- Calculator widget (draggable, compact) ---------- */
+.ml-calc-widget {
+  display: none;
+  position: fixed;
+  top: 100px;
+  right: 16px;
+  width: 220px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+  z-index: 600;
+  overflow: hidden;
+  user-select: none;
+  touch-action: manipulation;
+}
+.ml-calc-widget.active { display: block; }
+.ml-calc-widget.compact { width: 150px; }
+.ml-calc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--paper);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  cursor: grab;
+  touch-action: none;
+}
+.ml-calc-header:active { cursor: grabbing; }
+.ml-calc-header-btns { display: flex; gap: 2px; }
+.ml-calc-close {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  touch-action: manipulation;
+}
+.ml-calc-close:hover { color: var(--danger); }
+.ml-calc-expr {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  text-align: right;
+  padding: 6px 10px 0;
+  color: var(--ink-soft);
+  background: var(--paper);
+  min-height: 14px;
+}
+.ml-calc-display {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 22px;
+  font-weight: 600;
+  text-align: right;
+  padding: 6px 10px 12px;
+  color: var(--ink);
+  background: var(--paper);
+  overflow-x: auto;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.ml-calc-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  padding: 8px;
+}
+.ml-calc-btn {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ml-calc-btn:active { background: var(--online-soft); }
+.ml-calc-btn.ml-calc-fn { color: var(--danger); border-color: var(--danger); }
+.ml-calc-btn.ml-calc-op { color: var(--online); border-color: var(--online); }
+.ml-calc-btn.ml-calc-eq { background: var(--gold); color: #1A1408; border-color: var(--gold); }
+
+.ml-calc-widget.compact .ml-calc-header { padding: 5px 7px; font-size: 10px; }
+.ml-calc-widget.compact .ml-calc-display { font-size: 15px; padding: 7px 8px; }
+.ml-calc-widget.compact .ml-calc-buttons { gap: 3px; padding: 5px; }
+.ml-calc-widget.compact .ml-calc-btn { font-size: 11px; padding: 6px 0; border-radius: 6px; }
+
+.ml-love-popup {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,6,10,0.72);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.ml-love-popup.active { display: flex; }
+.ml-love-hearts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ml-love-heart {
+  position: absolute;
+  top: -10%;
+  animation-name: mlHeartFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 4px rgba(233,120,150,0.5));
+}
+@keyframes mlHeartFall {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+  8% { opacity: 0.9; }
+  100% { transform: translateY(120vh) translateX(10px) rotate(25deg); opacity: 0; }
+}
+.ml-love-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  padding: 34px 30px;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(221,174,85,0.15);
+}
+.ml-love-heart-big { font-size: 46px; margin-bottom: 6px; }
+.ml-love-title {
+  font-family: 'Zilla Slab', serif;
+  font-weight: 700;
+  font-size: 24px;
+  margin: 0 0 8px;
+  color: var(--gold);
+}
+.ml-love-msg {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+/* ---------- Change PIN modal ---------- */
+.ml-change-pin-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,10,10,0.6);
+  z-index: 900;
+  align-items: center;
+  justify-content: center;
+}
+.ml-change-pin-modal.active { display: flex; }
+.ml-change-pin-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px 22px;
+  max-width: 340px;
+  width: 90%;
+}
+</style>
+</head>
+<body>
+
+<div class="ml-root">
+  <div class="ml-wrap">
+
+    <div class="ml-change-pin-modal" id="mlChangePinModal">
+      <div class="ml-change-pin-card">
+        <h2 class="ml-form-title">Change PIN</h2>
+        <div class="ml-field" style="margin-bottom:10px;">
+          <label for="mlChangePinCurrent">Current PIN</label>
+          <input type="password" id="mlChangePinCurrent" inputmode="numeric" maxlength="4" placeholder="1234" />
+        </div>
+        <div class="ml-field" style="margin-bottom:10px;">
+          <label for="mlChangePinNew">New PIN</label>
+          <input type="password" id="mlChangePinNew" inputmode="numeric" maxlength="4" placeholder="1234" />
+        </div>
+        <div class="ml-field" style="margin-bottom:14px;">
+          <label for="mlChangePinConfirm">Confirm new PIN</label>
+          <input type="password" id="mlChangePinConfirm" inputmode="numeric" maxlength="4" placeholder="1234" />
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="ml-submit" id="mlChangePinSaveBtn" style="flex:1;">Save new PIN</button>
+          <button type="button" class="ml-reset" id="mlChangePinCancelBtn">Cancel</button>
+        </div>
+        <div class="ml-form-msg" id="mlChangePinErr"></div>
+      </div>
+    </div>
+
+    <div class="ml-change-pin-modal" id="mlChangeCurrencyModal">
+      <div class="ml-change-pin-card">
+        <h2 class="ml-form-title">Change currency</h2>
+        <div class="ml-sub" style="margin-bottom:12px;">Changes how amounts are labeled and converted to ₹ for you — it doesn't touch anyone else's account.</div>
+        <div class="ml-field" style="margin-bottom:10px;">
+          <label for="mlChangeCurrencyInput">Currency</label>
+          <select id="mlChangeCurrencyInput"></select>
+        </div>
+        <div class="ml-field" id="mlChangeCurrencyRateField" style="margin-bottom:14px; display:none;">
+          <label for="mlChangeCurrencyRate">Exchange rate to ₹1 <span style="text-transform:none; letter-spacing:0;">(approximate, you can edit)</span></label>
+          <input type="number" step="0.01" min="0.01" id="mlChangeCurrencyRate" placeholder="e.g. 68" />
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="ml-submit" id="mlChangeCurrencySaveBtn" style="flex:1;">Save currency</button>
+          <button type="button" class="ml-reset" id="mlChangeCurrencyCancelBtn">Cancel</button>
+        </div>
+        <div class="ml-form-msg" id="mlChangeCurrencyErr"></div>
+      </div>
+    </div>
+
+    <div class="ml-change-pin-modal" id="mlCalendarModal">
+      <div class="ml-change-pin-card ml-calendar-card">
+        <div class="ml-calendar-header">
+          <button type="button" class="ml-calendar-nav-arrow" id="mlCalMonthPrev">‹</button>
+          <span class="ml-calendar-month-label" id="mlCalMonthLabel">July 2026</span>
+          <button type="button" class="ml-calendar-nav-arrow" id="mlCalMonthNext">›</button>
+        </div>
+        <div class="ml-calendar-weekdays">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="ml-calendar-grid" id="mlCalendarGrid"></div>
+        <div class="ml-calendar-legend">
+          <span class="ml-calendar-legend-swatch" style="background: rgba(229,120,122,0.12);"></span> Low spend
+          <span class="ml-calendar-legend-swatch" style="background: rgba(229,120,122,0.75); margin-left:10px;"></span> High spend
+        </div>
+        <button type="button" class="ml-reset" id="mlCalendarCloseBtn" style="width:100%; margin-top:12px;">Close</button>
+      </div>
+    </div>
+
+    <div class="ml-calc-widget" id="mlCalcWidget">
+      <div class="ml-calc-header" id="mlCalcHeader">
+        <span>🧮 Calculator</span>
+        <div class="ml-calc-header-btns">
+          <button type="button" class="ml-calc-close" id="mlCalcResizeBtn" title="Shrink">－</button>
+          <button type="button" class="ml-calc-close" id="mlCalcCloseBtn">✕</button>
+        </div>
+      </div>
+      <div class="ml-calc-expr" id="mlCalcExpr"></div>
+      <div class="ml-calc-display" id="mlCalcDisplay">0</div>
+      <div class="ml-calc-buttons">
+        <button type="button" class="ml-calc-btn ml-calc-fn" data-calc-clear>C</button>
+        <button type="button" class="ml-calc-btn ml-calc-fn" data-calc-backspace>⌫</button>
+        <button type="button" class="ml-calc-btn ml-calc-op" data-calc-op="÷">÷</button>
+        <button type="button" class="ml-calc-btn ml-calc-op" data-calc-op="×">×</button>
+
+        <button type="button" class="ml-calc-btn" data-calc-digit="7">7</button>
+        <button type="button" class="ml-calc-btn" data-calc-digit="8">8</button>
+        <button type="button" class="ml-calc-btn" data-calc-digit="9">9</button>
+        <button type="button" class="ml-calc-btn ml-calc-op" data-calc-op="−">−</button>
+
+        <button type="button" class="ml-calc-btn" data-calc-digit="4">4</button>
+        <button type="button" class="ml-calc-btn" data-calc-digit="5">5</button>
+        <button type="button" class="ml-calc-btn" data-calc-digit="6">6</button>
+        <button type="button" class="ml-calc-btn ml-calc-op" data-calc-op="+">+</button>
+
+        <button type="button" class="ml-calc-btn" data-calc-digit="1">1</button>
+        <button type="button" class="ml-calc-btn" data-calc-digit="2">2</button>
+        <button type="button" class="ml-calc-btn" data-calc-digit="3">3</button>
+        <button type="button" class="ml-calc-btn ml-calc-eq" id="mlCalcEquals" style="grid-row: span 2;">=</button>
+
+        <button type="button" class="ml-calc-btn" data-calc-digit="0" style="grid-column: span 2;">0</button>
+        <button type="button" class="ml-calc-btn" data-calc-decimal>.</button>
+      </div>
+    </div>
+
+    <div class="ml-love-popup" id="mlLovePopup">
+      <div class="ml-love-hearts" id="mlLoveHearts"></div>
+      <div class="ml-love-card">
+        <div class="ml-love-heart-big">💗</div>
+        <h2 class="ml-love-title">For Piyu Baby</h2>
+        <p class="ml-love-msg">Made with love, by your Saksh.</p>
+        <button type="button" class="ml-submit" id="mlLoveClose">Close</button>
+      </div>
+    </div>
+
+    <div class="ml-login-screen" id="mlLoginScreen">
+      <div class="ml-login-card">
+        <h1 class="ml-title" style="margin-bottom:6px;">Money <span>Ledger</span></h1>
+        <div class="ml-sub" style="margin-bottom:16px;">Enter a name and a 4-digit PIN to open your own ledger — no OTP, no email needed. Use the same name + PIN next time (on any device) to get your data back.</div>
+        <div class="ml-login-tabs">
+          <button type="button" class="ml-login-tab active" id="mlTabSignin" data-mode="signin">Sign in</button>
+          <button type="button" class="ml-login-tab" id="mlTabSignup" data-mode="signup">Create new account</button>
+        </div>
+        <div class="ml-row">
+          <div class="ml-field" style="flex:2; min-width:160px;">
+            <label for="mlLoginName">Your name</label>
+            <input type="text" id="mlLoginName" placeholder="e.g. Priya" maxlength="30" />
+          </div>
+          <div class="ml-field">
+            <label for="mlLoginPin">4-digit PIN</label>
+            <input type="password" id="mlLoginPin" placeholder="1234" inputmode="numeric" maxlength="4" />
+          </div>
+        </div>
+
+        <div id="mlHintFields" style="display:none;">
+          <div class="ml-row">
+            <div class="ml-field" style="flex:1;">
+              <label for="mlSignupCurrency">Currency <span style="text-transform:none; letter-spacing:0;">(defaults to ₹ INR)</span></label>
+              <select id="mlSignupCurrency"></select>
+            </div>
+          </div>
+          <div class="ml-row" id="mlSignupRateRow" style="display:none;">
+            <div class="ml-field" style="flex:1;">
+              <label for="mlSignupCurrencyRate">Exchange rate to ₹1 <span style="text-transform:none; letter-spacing:0;">(approximate, you can edit)</span></label>
+              <input type="number" step="0.01" min="0.01" id="mlSignupCurrencyRate" placeholder="e.g. 68" />
+            </div>
+          </div>
+          <div class="ml-row">
+            <div class="ml-field" style="flex:1;">
+              <label for="mlHintQuestion">Security hint question <span style="text-transform:none; letter-spacing:0;">(optional, for PIN recovery)</span></label>
+              <input type="text" id="mlHintQuestion" placeholder="e.g. What's our nickname for each other?" maxlength="80" />
+            </div>
+          </div>
+          <div class="ml-row">
+            <div class="ml-field" style="flex:1;">
+              <label for="mlHintAnswer">Your answer</label>
+              <input type="text" id="mlHintAnswer" placeholder="Only you should know this" maxlength="60" />
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="ml-submit" id="mlLoginBtn" style="width:100%; margin-top:6px;">Sign in</button>
+        <button type="button" class="ml-forgot-link" id="mlForgotPinBtn">Forgot PIN?</button>
+        <div class="ml-form-msg" id="mlLoginMsg"></div>
+
+        <div class="ml-recovery-panel" id="mlRecoveryPanel" style="display:none;">
+          <div class="ml-hint" id="mlRecoveryQuestion" style="margin-bottom:8px;"></div>
+          <div class="ml-row">
+            <div class="ml-field" style="flex:1;">
+              <label for="mlRecoveryAnswer">Your answer</label>
+              <input type="text" id="mlRecoveryAnswer" placeholder="Type your answer" />
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button type="button" class="ml-submit" id="mlRecoveryRevealBtn" style="flex:1;">Reveal my PIN</button>
+            <button type="button" class="ml-reset" id="mlRecoveryCancelBtn">Cancel</button>
+          </div>
+          <div class="ml-form-msg" id="mlRecoveryMsg"></div>
+        </div>
+
+        <div class="ml-hint" style="margin-top:14px;">This is a simple name + PIN, not a secure login — anyone who enters the exact same name and PIN (or answers your hint question correctly) can see this ledger. Pick something only you would use, and don't reuse a real banking PIN.</div>
+      </div>
+    </div>
+
+    <div id="mlAppBody" style="display:none;">
+
+    <div class="ml-header">
+      <div>
+        <h1 class="ml-title">Money <span>Ledger</span></h1>
+        <div class="ml-sub">A simple cash &amp; online split tracker — your data, saved just for you.</div>
+      </div>
+      <div class="ml-header-right">
+        <div class="ml-profile-menu-wrap" id="mlProfileMenuWrap">
+          <button type="button" class="ml-hamburger-btn" id="mlProfileMenuBtn" title="Profile menu">☰</button>
+          <div class="ml-profile-dropdown" id="mlProfileDropdown">
+            <div class="ml-profile-dropdown-name">👤 <span id="mlCurrentUserLabel"></span></div>
+            <button type="button" class="ml-profile-dropdown-item" id="mlChangePinOpenBtn">🔑 Change PIN</button>
+            <button type="button" class="ml-profile-dropdown-item" id="mlChangeCurrencyOpenBtn">💱 Change currency</button>
+            <button type="button" class="ml-profile-dropdown-item" id="mlCalculatorOpenBtn">🧮 Calculator</button>
+            <button type="button" class="ml-profile-dropdown-item" id="mlSwitchUser">🔀 Switch account</button>
+            <button type="button" class="ml-profile-dropdown-item" id="mlLogoutBtn">🚪 Logout</button>
+          </div>
+        </div>
+        <div class="ml-stamp">Balanced Books</div>
+      </div>
+    </div>
+
+    <div id="mlLiveRateBar" class="ml-live-rate-bar" style="display:none;"></div>
+
+    <div id="mlStatus" class="ml-status"><span id="mlStatusMsg">Loading your ledger…</span><button type="button" id="mlStatusRetry" class="ml-status-retry" style="display:none;">Retry now</button></div>
+
+    <div class="ml-main-tabs">
+      <button type="button" class="ml-main-tab active" id="mlTabTransactions" data-panel="transactions">💰 Transactions</button>
+      <button type="button" class="ml-main-tab" id="mlTabSummary" data-panel="summary">📊 Summary</button>
+      <button type="button" class="ml-main-tab" id="mlTabSavings" data-panel="savings">🏦 Savings</button>
+    </div>
+
+    <div id="mlTransactionsPanel">
+
+    <div class="ml-cards">
+      <div class="ml-card cash">
+        <div class="ml-card-label">💵 Cash in hand</div>
+        <div class="ml-card-amount" id="mlCashBal">₹0</div>
+      </div>
+      <div class="ml-card online">
+        <div class="ml-card-label">💳 Online balance</div>
+        <div class="ml-card-amount" id="mlOnlineBal">₹0</div>
+      </div>
+      <div class="ml-card total">
+        <div class="ml-card-label">◈ Total balance</div>
+        <div class="ml-card-amount" id="mlTotalBal">₹0</div>
+        <div class="ml-breakdown" id="mlBreakdown"></div>
+      </div>
+      <div class="ml-card month">
+        <div class="ml-card-label"><span id="mlMonthLabel">This month</span> <button type="button" class="ml-edit-bal" id="mlEditMonth" title="Set this month's cash &amp; online">✎</button></div>
+        <div class="ml-card-amount" id="mlMonthBal">Not set</div>
+        <div class="ml-breakdown" id="mlMonthBreakdown"></div>
+        <div class="ml-edit-row ml-edit-row-double" id="mlMonthEditRow">
+          <div class="ml-edit-double-inputs">
+            <input type="number" step="0.01" min="0" id="mlMonthCashInput" placeholder="Cash ₹" />
+            <input type="number" step="0.01" min="0" id="mlMonthOnlineInput" placeholder="Online ₹" />
+          </div>
+          <button type="button" class="ml-edit-ok" id="mlMonthEditOk" title="Save">✓</button>
+          <button type="button" class="ml-edit-cancel" id="mlMonthEditCancel" title="Cancel">✕</button>
+        </div>
+        <div class="ml-hint" id="mlMonthEditHint" style="display:none;">This sets both your spending budget for the month and your actual Cash/Online balance (as a logged transaction).</div>
+        <div class="ml-edit-err" id="mlMonthEditErr"></div>
+      </div>
+    </div>
+
+    <div class="ml-form-section">
+      <h2 class="ml-form-title">Add a transaction</h2>
+
+      <form id="mlForm">
+        <div class="ml-row">
+          <div class="ml-field" style="flex: 2; min-width: 200px;">
+            <label for="mlDesc">Description</label>
+            <input type="text" id="mlDesc" placeholder="e.g. Groceries, Salary, Rent" required />
+          </div>
+          <div class="ml-field">
+            <label for="mlCategory">Category</label>
+            <select id="mlCategory">
+              <option value="General">📁 General</option>
+              <option value="Food">🍔 Food</option>
+              <option value="Transport">🚗 Transport</option>
+              <option value="Shopping">🛍️ Shopping</option>
+              <option value="Bills">🧾 Bills</option>
+              <option value="Salary">💼 Salary</option>
+              <option value="Health">🏥 Health</option>
+              <option value="Entertainment">🎬 Entertainment</option>
+              <option value="Other">📦 Other</option>
+            </select>
+          </div>
+          <div class="ml-field">
+            <label for="mlDate">Date</label>
+            <input type="date" id="mlDate" required />
+          </div>
+        </div>
+
+        <div class="ml-row">
+          <div class="ml-field">
+            <label>Type</label>
+            <div class="ml-type-toggle">
+              <button type="button" class="ml-type-btn active" data-type="expense">Expense</button>
+              <button type="button" class="ml-type-btn" data-type="income">Income</button>
+              <button type="button" class="ml-type-btn" data-type="transfer">Transfer</button>
+            </div>
+          </div>
+          <div class="ml-field">
+            <label for="mlAmount" id="mlAmountLabel">Total amount (₹)</label>
+            <input type="number" id="mlAmount" min="0" step="0.01" placeholder="0.00" required />
+          </div>
+        </div>
+
+        <div class="ml-split-box" id="mlSplitBox">
+          <div class="ml-split-label-row">
+            <span>Split between cash &amp; online</span>
+            <span id="mlSplitReadout">50% cash / 50% online</span>
+          </div>
+          <div class="ml-split-bar">
+            <div class="ml-split-cash" id="mlBarCash" style="width:50%">₹0</div>
+            <div class="ml-split-online" id="mlBarOnline" style="width:50%">₹0</div>
+          </div>
+          <input type="range" class="ml-split-slider" id="mlSplitSlider" min="0" max="100" value="50" />
+          <div class="ml-quick-row">
+            <button type="button" class="ml-quick" data-pct="100">All cash</button>
+            <button type="button" class="ml-quick" data-pct="50">Split 50 / 50</button>
+            <button type="button" class="ml-quick" data-pct="0">All online</button>
+          </div>
+        </div>
+
+        <div class="ml-transfer-box" id="mlTransferBox">
+          <div class="ml-split-label-row"><span>Move money between accounts</span></div>
+          <div class="ml-transfer-dirs">
+            <button type="button" class="ml-dir-btn active" data-dir="cash-to-online">Cash → Online</button>
+            <button type="button" class="ml-dir-btn" data-dir="online-to-cash">Online → Cash</button>
+          </div>
+          <div class="ml-hint">e.g. depositing cash into your bank, or withdrawing cash from an ATM. This shifts money between your two balances without changing your total.</div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button type="submit" class="ml-submit" id="mlFormSubmitBtn" style="flex:1;">Add to ledger</button>
+          <button type="button" class="ml-reset" id="mlCancelEditBtn" style="display:none;">Cancel edit</button>
+        </div>
+        <div class="ml-form-msg" id="mlFormMsg"></div>
+      </form>
+    </div>
+
+    <div class="ml-ledger-section">
+      <div class="ml-ledger-head">
+        <h2 class="ml-form-title" style="margin:0;">Ledger</h2>
+        <div class="ml-filters">
+          <input type="text" id="mlSearch" placeholder="Search description…" />
+          <select id="mlFilterType">
+            <option value="all">All types</option>
+            <option value="income">Income only</option>
+            <option value="expense">Expense only</option>
+            <option value="transfer">Transfers only</option>
+          </select>
+          <select id="mlFilterMethod">
+            <option value="all">Cash + Online</option>
+            <option value="cash">Cash only</option>
+            <option value="online">Online only</option>
+            <option value="split">Split entries</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ml-day-nav">
+        <button type="button" class="ml-day-nav-arrow" id="mlDayPrev" title="Previous day">‹</button>
+        <button type="button" class="ml-day-nav-label" id="mlDayLabel">Today</button>
+        <button type="button" class="ml-day-nav-arrow" id="mlDayNext" title="Next day">›</button>
+      </div>
+      <div class="ml-day-summary" id="mlDaySummary"></div>
+
+      <div id="mlTableBody" class="ml-ledger-list"></div>
+      <div class="ml-footer-row">
+        <span class="ml-count" id="mlCount">0 entries</span>
+        <button type="button" class="ml-reset" id="mlResetBtn">Clear all data</button>
+      </div>
+    </div>
+
+    </div>
+
+    <div id="mlSummaryPanel" style="display:none;">
+
+      <div class="ml-form-section">
+        <h2 class="ml-form-title">Summary</h2>
+        <div class="ml-period-tabs">
+          <button type="button" class="ml-period-tab active" id="mlPeriodMonth" data-period="month">This month</button>
+          <button type="button" class="ml-period-tab" id="mlPeriodAll" data-period="all">All time</button>
+        </div>
+      </div>
+
+      <div class="ml-cards">
+        <div class="ml-card cash">
+          <div class="ml-card-label">Income</div>
+          <div class="ml-card-amount" id="mlSumIncome">₹0</div>
+        </div>
+        <div class="ml-card expense">
+          <div class="ml-card-label">Expense</div>
+          <div class="ml-card-amount" id="mlSumExpense">₹0</div>
+        </div>
+        <div class="ml-card month">
+          <div class="ml-card-label">Net</div>
+          <div class="ml-card-amount" id="mlSumNet">₹0</div>
+        </div>
+      </div>
+
+      <div class="ml-form-section">
+        <h2 class="ml-form-title">Cash vs online spending</h2>
+        <div class="ml-cvo-row">
+          <div class="ml-cvo-item">
+            <div class="ml-cvo-label">Cash</div>
+            <div class="ml-cvo-bar-track"><div class="ml-cvo-bar-fill cash" id="mlCvoCashFill"></div></div>
+            <div class="ml-cvo-amt" id="mlCvoCashAmt">₹0</div>
+          </div>
+          <div class="ml-cvo-item">
+            <div class="ml-cvo-label">Online</div>
+            <div class="ml-cvo-bar-track"><div class="ml-cvo-bar-fill online" id="mlCvoOnlineFill"></div></div>
+            <div class="ml-cvo-amt" id="mlCvoOnlineAmt">₹0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ml-form-section">
+        <h2 class="ml-form-title">Spending by category</h2>
+        <div class="ml-hint" id="mlSumTopCat" style="margin-bottom:14px;"></div>
+        <div class="ml-pie-wrap">
+          <div class="ml-pie-chart" id="mlSumExpensePie">
+            <div class="ml-pie-center">
+              <div class="ml-pie-center-amt" id="mlSumExpensePieTotal">₹0</div>
+              <div class="ml-pie-center-label">spent</div>
+            </div>
+          </div>
+          <div class="ml-pie-legend" id="mlSumExpenseCatList"></div>
+        </div>
+      </div>
+
+      <div class="ml-form-section">
+        <h2 class="ml-form-title">Income by category</h2>
+        <div class="ml-pie-wrap">
+          <div class="ml-pie-chart" id="mlSumIncomePie">
+            <div class="ml-pie-center">
+              <div class="ml-pie-center-amt" id="mlSumIncomePieTotal">₹0</div>
+              <div class="ml-pie-center-label">income</div>
+            </div>
+          </div>
+          <div class="ml-pie-legend" id="mlSumIncomeCatList"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="mlSavingsPanel" style="display:none;">
+
+      <div class="ml-cards" style="grid-template-columns: 1fr;">
+        <div class="ml-card savings">
+          <div class="ml-card-label">🏦 Savings balance</div>
+          <div class="ml-card-amount" id="mlSavingsBal">₹0</div>
+        </div>
+      </div>
+
+      <div class="ml-form-section">
+        <h2 class="ml-form-title">Add to / withdraw from savings</h2>
+        <form id="mlSavingsForm">
+          <div class="ml-row">
+            <div class="ml-field" style="flex:2; min-width:200px;">
+              <label for="mlSavingsDesc">Description</label>
+              <input type="text" id="mlSavingsDesc" placeholder="e.g. Monthly top-up, Emergency withdrawal" />
+            </div>
+            <div class="ml-field">
+              <label for="mlSavingsDate">Date</label>
+              <input type="date" id="mlSavingsDate" required />
+            </div>
+          </div>
+          <div class="ml-row">
+            <div class="ml-field">
+              <label>Type</label>
+              <div class="ml-type-toggle">
+                <button type="button" class="ml-type-btn active" data-savtype="deposit">Add to savings</button>
+                <button type="button" class="ml-type-btn" data-savtype="withdrawal">Withdraw from savings</button>
+              </div>
+            </div>
+            <div class="ml-field">
+              <label for="mlSavingsAmount" id="mlSavingsAmountLabel">Amount (₹)</label>
+              <input type="number" id="mlSavingsAmount" min="0" step="0.01" placeholder="0.00" required />
+            </div>
+            <div class="ml-field">
+              <label id="mlSavingsLinkLabel" for="mlSavingsLink">Fund from</label>
+              <select id="mlSavingsLink">
+                <option value="none">Outside money (no link)</option>
+                <option value="cash">Cash in hand</option>
+                <option value="online">Online balance</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="submit" class="ml-submit" id="mlSavingsFormSubmitBtn" style="flex:1;">Save savings entry</button>
+            <button type="button" class="ml-reset" id="mlSavingsCancelEditBtn" style="display:none;">Cancel edit</button>
+          </div>
+          <div class="ml-form-msg" id="mlSavingsFormMsg"></div>
+        </form>
+      </div>
+
+      <div class="ml-ledger-section">
+        <div class="ml-ledger-head">
+          <h2 class="ml-form-title" style="margin:0;">Savings ledger</h2>
+        </div>
+        <div id="mlSavingsTableBody" class="ml-ledger-list"></div>
+        <button type="button" class="ml-show-more" id="mlSavingsShowMoreBtn" style="display:none;"></button>
+        <div class="ml-footer-row">
+          <span class="ml-count" id="mlSavingsCount">0 entries</span>
+        </div>
+      </div>
+
+    </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---------- Supabase config ----------
+  const SB_URL = 'https://keppfxczdjqailrzayip.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlcHBmeGN6ZGpxYWlscnpheWlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzM2OTMsImV4cCI6MjA5OTcwOTY5M30.Mo4PFcRFDA_QvbTDGL3msq_SdVhx47R6dzFSyslkfsI';
+  const LASTUSER_KEY = 'moneyLedgerLastUser';
+  const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+  let sessionTimer = null;
+
+  async function sbRequest(path, options, attempts) {
+    attempts = attempts || 3;
+    options = options || {};
+    const headers = Object.assign({
+      apikey: SB_KEY,
+      Authorization: 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json'
+    }, options.headers || {});
+    let lastErr = null;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const res = await fetch(SB_URL + '/rest/v1/' + path, Object.assign({}, options, { headers }));
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error('(' + res.status + ') ' + text.slice(0, 200));
+        }
+        if (res.status === 204) return null;
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
+      } catch (e) {
+        lastErr = e;
+        if (i < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 400 * (i + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
+  function describeError(e) {
+    if (!e) return 'unknown error';
+    if (typeof e === 'string') return e;
+    if (e.message) return e.message;
+    try { return JSON.stringify(e); } catch (_) { return String(e); }
+  }
+
+  // ---------- Data access (Supabase) ----------
+  async function findAccountByKey(accountKey) {
+    const rows = await sbRequest('accounts?account_key=eq.' + encodeURIComponent(accountKey) + '&select=*', {}, 2);
+    return rows && rows[0] ? rows[0] : null;
+  }
+  async function createAccount(accountKey, name, currencySymbol, currencyRate) {
+    const body = { account_key: accountKey, name: name };
+    if (currencySymbol) body.currency_symbol = currencySymbol;
+    if (currencyRate) body.currency_rate_to_inr = currencyRate;
+    const rows = await sbRequest('accounts', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(body)
+    });
+    return rows[0];
+  }
+  async function renameAccountKey(accountId, newAccountKey) {
+    await sbRequest('accounts?id=eq.' + accountId, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ account_key: newAccountKey })
+    });
+  }
+  async function updateAccountCurrency(accountId, currencySymbol, currencyRate) {
+    await sbRequest('accounts?id=eq.' + accountId, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ currency_symbol: currencySymbol, currency_rate_to_inr: currencyRate })
+    });
+  }
+
+  async function getRecoveryHint(nameSlug) {
+    const rows = await sbRequest('account_recovery?name_slug=eq.' + encodeURIComponent(nameSlug) + '&select=*', {}, 2);
+    return rows && rows[0] ? rows[0] : null;
+  }
+  async function upsertRecoveryHint(nameSlug, accountId, pin, hintQ, hintA) {
+    await sbRequest('account_recovery?on_conflict=name_slug', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ name_slug: nameSlug, account_id: accountId, pin: pin, hint_question: hintQ, hint_answer: hintA })
+    });
+  }
+
+  function txFromRow(r) {
+    return { id: r.id, date: r.date, desc: r.description, category: r.category, type: r.type, cashAmount: Number(r.cash_amount), onlineAmount: Number(r.online_amount), total: Number(r.total) };
+  }
+  async function fetchTransactions(accountId) {
+    const rows = await sbRequest('transactions?account_id=eq.' + accountId + '&select=*&order=date.desc,created_at.desc');
+    return (rows || []).map(txFromRow);
+  }
+  async function insertTransactionRow(accountId, tx) {
+    const rows = await sbRequest('transactions', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({
+        account_id: accountId, date: tx.date, description: tx.desc, category: tx.category,
+        type: tx.type, cash_amount: tx.cashAmount, online_amount: tx.onlineAmount, total: tx.total
+      })
+    });
+    return txFromRow(rows[0]);
+  }
+  async function deleteTransactionRow(id) {
+    await sbRequest('transactions?id=eq.' + id, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+  }
+  async function updateTransactionFull(id, tx) {
+    await sbRequest('transactions?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        date: tx.date, description: tx.desc, category: tx.category, type: tx.type,
+        cash_amount: tx.cashAmount, online_amount: tx.onlineAmount, total: tx.total
+      })
+    });
+  }
+  async function deleteAllTransactionRows(accountId) {
+    await sbRequest('transactions?account_id=eq.' + accountId, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+  }
+
+  async function fetchOpening(accountId) {
+    const rows = await sbRequest('opening_balances?account_id=eq.' + accountId + '&select=*');
+    return rows && rows[0] ? { cash: Number(rows[0].cash), online: Number(rows[0].online) } : { cash: 0, online: 0 };
+  }
+  async function upsertOpening(accountId, openingVal) {
+    await sbRequest('opening_balances?on_conflict=account_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ account_id: accountId, cash: openingVal.cash, online: openingVal.online })
+    });
+  }
+
+  async function fetchMonthlyBalances(accountId) {
+    const rows = await sbRequest('monthly_balances?account_id=eq.' + accountId + '&select=*');
+    const map = {};
+    (rows || []).forEach((r) => { map[r.month_key] = { cash: Number(r.cash), online: Number(r.online) }; });
+    return map;
+  }
+  async function upsertMonthlyBalance(accountId, monthKey, cash, online) {
+    await sbRequest('monthly_balances?on_conflict=account_id,month_key', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ account_id: accountId, month_key: monthKey, cash: cash, online: online })
+    });
+  }
+
+  function savTxFromRow(r) {
+    return { id: r.id, date: r.date, desc: r.description, type: r.type, amount: Number(r.amount), link: r.link, linkTxId: r.link_tx_id || null };
+  }
+  async function fetchSavingsTransactions(accountId) {
+    const rows = await sbRequest('savings_transactions?account_id=eq.' + accountId + '&select=*&order=date.desc,created_at.desc');
+    return (rows || []).map(savTxFromRow);
+  }
+  async function insertSavingsRow(accountId, tx) {
+    const rows = await sbRequest('savings_transactions', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ account_id: accountId, date: tx.date, description: tx.desc, type: tx.type, amount: tx.amount, link: tx.link, link_tx_id: tx.linkTxId || null })
+    });
+    return savTxFromRow(rows[0]);
+  }
+  async function deleteSavingsRow(id) {
+    await sbRequest('savings_transactions?id=eq.' + id, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+  }
+  async function updateSavingsFull(id, tx) {
+    await sbRequest('savings_transactions?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        date: tx.date, description: tx.desc, type: tx.type,
+        amount: tx.amount, link: tx.link, link_tx_id: tx.linkTxId || null
+      })
+    });
+  }
+
+  async function fetchSavingsOpening(accountId) {
+    const rows = await sbRequest('savings_opening?account_id=eq.' + accountId + '&select=*');
+    return rows && rows[0] ? Number(rows[0].balance) : 0;
+  }
+  async function upsertSavingsOpening(accountId, balance) {
+    await sbRequest('savings_opening?on_conflict=account_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ account_id: accountId, balance: balance })
+    });
+  }
+
+  const CURRENCY_OPTIONS = [
+    { symbol: '₹', code: 'INR', label: '₹ INR — Indian Rupee', rate: 1 },
+    { symbol: '$', code: 'USD', label: '$ USD — US Dollar', rate: 96 },
+    { symbol: 'A$', code: 'AUD', label: 'A$ AUD — Australian Dollar', rate: 68 },
+    { symbol: '€', code: 'EUR', label: '€ EUR — Euro', rate: 103 },
+    { symbol: '£', code: 'GBP', label: '£ GBP — British Pound', rate: 122 },
+    { symbol: 'C$', code: 'CAD', label: 'C$ CAD — Canadian Dollar', rate: 70 },
+    { symbol: 'S$', code: 'SGD', label: 'S$ SGD — Singapore Dollar', rate: 75 },
+    { symbol: 'AED', code: 'AED', label: 'AED — UAE Dirham', rate: 26 }
+  ];
+
+  function codeForSymbol(sym) {
+    const opt = CURRENCY_OPTIONS.find((o) => o.symbol === sym);
+    return opt ? opt.code : 'INR';
+  }
+
+  // ---------- Live exchange rates (open.er-api.com, updates once every 24h) ----------
+  let liveRates = null;
+  const RATES_CACHE_KEY = 'moneyLedgerRatesCache';
+  async function fetchLiveRates() {
+    try {
+      const cached = localStorage.getItem(RATES_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.fetchedAt < 24 * 60 * 60 * 1000) {
+          liveRates = parsed.rates;
+          return;
+        }
+      }
+    } catch (e) { /* no cache yet, or unreadable — fall through to fetch */ }
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/INR');
+      const data = await res.json();
+      if (data && data.result === 'success' && data.rates) {
+        liveRates = data.rates;
+        try {
+          localStorage.setItem(RATES_CACHE_KEY, JSON.stringify({ rates: liveRates, fetchedAt: Date.now() }));
+        } catch (e) { /* caching is best-effort */ }
+        if (currentAccountId && currentCurrencySymbol !== '₹') { render(); renderSavings(); updateLiveRateBar(); }
+      }
+    } catch (e) {
+      // network/CORS failure — fall back to any stale cache we have, otherwise per-account saved rate is used
+      try {
+        const cached = localStorage.getItem(RATES_CACHE_KEY);
+        if (cached) liveRates = JSON.parse(cached).rates;
+      } catch (e2) { /* no fallback available */ }
+    }
+  }
+  function liveRateToInr(code) {
+    if (!liveRates || !liveRates[code] || code === 'INR') return null;
+    return 1 / liveRates[code];
+  }
+
+  // ---------- App state ----------
+  let currentAccountId = null;
+  let currentAccountKey = null;
+  let currentUserName = '';
+
+  let transactions = [];
+  let opening = { cash: 0, online: 0 };
+  let monthlyBalances = {};
+  let savingsTransactions = [];
+  let savingsOpening = 0;
+  let currentType = 'expense';
+  let savingsExpanded = false;
+  let currentDir = 'cash-to-online';
+
+  let currentCurrencySymbol = '₹';
+  let currentCurrencyRate = 1;
+
+  function populateCurrencySelect(selectEl) {
+    selectEl.innerHTML = '';
+    CURRENCY_OPTIONS.forEach((c) => {
+      const opt = document.createElement('option');
+      opt.value = c.symbol;
+      opt.dataset.rate = c.rate;
+      opt.textContent = c.label;
+      selectEl.appendChild(opt);
+    });
+  }
+  populateCurrencySelect(document.getElementById('mlSignupCurrency'));
+  populateCurrencySelect(document.getElementById('mlChangeCurrencyInput'));
+
+  document.getElementById('mlSignupCurrency').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    const rateRow = document.getElementById('mlSignupRateRow');
+    if (opt.value === '₹') {
+      rateRow.style.display = 'none';
+    } else {
+      rateRow.style.display = 'block';
+      const live = liveRateToInr(codeForSymbol(opt.value));
+      document.getElementById('mlSignupCurrencyRate').value = live ? Math.round(live * 100) / 100 : opt.dataset.rate;
+    }
+  });
+
+  document.getElementById('mlChangeCurrencyInput').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    const rateField = document.getElementById('mlChangeCurrencyRateField');
+    if (opt.value === '₹') {
+      rateField.style.display = 'none';
+    } else {
+      rateField.style.display = 'block';
+      const live = liveRateToInr(codeForSymbol(opt.value));
+      document.getElementById('mlChangeCurrencyRate').value = live ? Math.round(live * 100) / 100 : opt.dataset.rate;
+    }
+  });
+
+  const fmt = (n) => currentCurrencySymbol + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+  const fmtInr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+  function inrLine(amount) {
+    if (currentCurrencySymbol === '₹') return '';
+    const code = codeForSymbol(currentCurrencySymbol);
+    const rate = liveRateToInr(code) || currentCurrencyRate;
+    if (!rate || rate === 1) return '';
+    const inrAmt = Math.round((amount || 0) * rate * 100) / 100;
+    return '<div class="ml-ledger-inr">≈ ' + fmtInr(inrAmt) + '</div>';
+  }
+  function round2(n) { return Math.round(n * 100) / 100; }
+
+  const statusEl = document.getElementById('mlStatus');
+  const statusMsgEl = document.getElementById('mlStatusMsg');
+  const statusRetryBtn = document.getElementById('mlStatusRetry');
+  const formMsg = document.getElementById('mlFormMsg');
+
+  function showSaveError(message, err) {
+    statusMsgEl.textContent = message + (err ? ' (' + describeError(err) + ')' : '');
+    statusEl.classList.add('err');
+    statusEl.style.display = 'flex';
+    statusRetryBtn.style.display = 'inline-block';
+  }
+  function clearSaveError() {
+    statusEl.classList.remove('err');
+    statusEl.style.display = 'none';
+    statusRetryBtn.style.display = 'none';
+  }
+  statusRetryBtn.addEventListener('click', async () => {
+    if (!currentAccountId) return;
+    statusMsgEl.textContent = 'Retrying…';
+    statusRetryBtn.style.display = 'none';
+    try {
+      await loadAllData();
+      clearSaveError();
+    } catch (e) {
+      showSaveError('Still could not load — check your connection and try again.', e);
+    }
+  });
+
+  function slugName(name) {
+    return (name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 24) || 'user';
+  }
+  function slugifyId(name, pin) {
+    const n = slugName(name);
+    const p = (pin || '').trim().replace(/[^0-9]/g, '').slice(0, 4).padStart(4, '0');
+    return n + '-' + p;
+  }
+
+  // ---------- Sign in / Sign up ----------
+  async function signIn(accountRow, name) {
+    currentAccountId = accountRow.id;
+    currentAccountKey = accountRow.account_key;
+    currentUserName = name.trim();
+    currentCurrencySymbol = accountRow.currency_symbol || '₹';
+    currentCurrencyRate = Number(accountRow.currency_rate_to_inr) || 1;
+    applyCurrencyLabels();
+    const expiresAt = Date.now() + SESSION_DURATION_MS;
+    try {
+      localStorage.setItem(LASTUSER_KEY, JSON.stringify({ accountKey: currentAccountKey, name: currentUserName, expiresAt }));
+    } catch (e) { /* remembering the last user is a convenience, ok to fail silently */ }
+    scheduleSessionTimeout(SESSION_DURATION_MS);
+    document.getElementById('mlLoginScreen').style.display = 'none';
+    document.getElementById('mlAppBody').style.display = 'block';
+    document.getElementById('mlCurrentUserLabel').textContent = currentUserName;
+    await loadAllData();
+    await maybeShowLovePopup();
+  }
+
+  function applyCurrencyLabels() {
+    const amtLabel = document.getElementById('mlAmountLabel');
+    if (amtLabel) amtLabel.textContent = 'Total amount (' + currentCurrencySymbol + ')';
+    const savAmtLabel = document.getElementById('mlSavingsAmountLabel');
+    if (savAmtLabel) savAmtLabel.textContent = 'Amount (' + currentCurrencySymbol + ')';
+    const monthCashInput = document.getElementById('mlMonthCashInput');
+    if (monthCashInput) monthCashInput.placeholder = 'Cash ' + currentCurrencySymbol;
+    const monthOnlineInput = document.getElementById('mlMonthOnlineInput');
+    if (monthOnlineInput) monthOnlineInput.placeholder = 'Online ' + currentCurrencySymbol;
+    updateLiveRateBar();
+  }
+
+  function updateLiveRateBar() {
+    const bar = document.getElementById('mlLiveRateBar');
+    if (!bar) return;
+    if (currentCurrencySymbol === '₹') { bar.style.display = 'none'; return; }
+    const code = codeForSymbol(currentCurrencySymbol);
+    const live = liveRateToInr(code);
+    const rate = live || currentCurrencyRate;
+    if (!rate) { bar.style.display = 'none'; return; }
+    const source = live ? "today's rate" : 'saved rate — live rate unavailable';
+    const rateStr = '₹' + (Math.round(rate * 100) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    bar.textContent = '💱 1 ' + currentCurrencySymbol + ' ≈ ' + rateStr + ' · ' + source;
+    bar.style.display = 'block';
+  }
+
+  function scheduleSessionTimeout(ms) {
+    if (sessionTimer) clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(() => {
+      try { localStorage.removeItem(LASTUSER_KEY); } catch (e) { /* best-effort */ }
+      goToLoginScreen();
+      document.getElementById('mlLoginMsg').textContent = 'Your session expired after 1 hour — please sign in again.';
+    }, ms);
+  }
+
+  let loginMode = 'signin';
+  function applyLoginModeUI() {
+    const isSignup = loginMode === 'signup';
+    document.getElementById('mlHintFields').style.display = isSignup ? 'block' : 'none';
+    document.getElementById('mlForgotPinBtn').style.display = isSignup ? 'none' : 'block';
+    document.getElementById('mlRecoveryPanel').style.display = 'none';
+  }
+  document.querySelectorAll('.ml-login-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ml-login-tab').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      loginMode = btn.dataset.mode;
+      document.getElementById('mlLoginBtn').textContent = loginMode === 'signin' ? 'Sign in' : 'Create my ledger';
+      document.getElementById('mlLoginMsg').textContent = '';
+      applyLoginModeUI();
+    });
+  });
+  applyLoginModeUI();
+
+  document.getElementById('mlLoginBtn').addEventListener('click', async () => {
+    const name = document.getElementById('mlLoginName').value;
+    const pin = document.getElementById('mlLoginPin').value;
+    const msg = document.getElementById('mlLoginMsg');
+    if (!name.trim()) { msg.textContent = 'Please enter a name.'; return; }
+    if (!/^\d{4}$/.test(pin.trim())) { msg.textContent = 'PIN must be exactly 4 digits.'; return; }
+    msg.textContent = 'Checking…';
+    const accountKey = slugifyId(name, pin);
+    let existing;
+    try {
+      existing = await findAccountByKey(accountKey);
+    } catch (e) {
+      msg.textContent = 'Could not reach the database — ' + describeError(e);
+      return;
+    }
+
+    if (loginMode === 'signin') {
+      if (!existing) {
+        msg.textContent = 'No account found with that name & PIN. Tap "Create new account" above to set one up.';
+        return;
+      }
+    } else {
+      if (existing) {
+        msg.textContent = 'An account with that name & PIN already exists. Tap "Sign in" above instead.';
+        return;
+      }
+      const currencySelect = document.getElementById('mlSignupCurrency');
+      const currencyInput = currencySelect.value;
+      const currencyRateVal = currencyInput === '₹' ? 1 : (Number(document.getElementById('mlSignupCurrencyRate').value) || currencySelect.selectedOptions[0].dataset.rate);
+      try {
+        existing = await createAccount(accountKey, name.trim(), currencyInput || null, currencyRateVal);
+      } catch (e) {
+        msg.textContent = 'Could not create account — ' + describeError(e);
+        return;
+      }
+      const hintQ = document.getElementById('mlHintQuestion').value.trim();
+      const hintA = document.getElementById('mlHintAnswer').value.trim();
+      if (hintQ && hintA) {
+        try {
+          await upsertRecoveryHint(slugName(name), existing.id, pin.trim(), hintQ, hintA.toLowerCase());
+        } catch (e) { /* recovery hint is best-effort; account creation still succeeds */ }
+      }
+    }
+    msg.textContent = '';
+    await signIn(existing, name);
+  });
+  [document.getElementById('mlLoginName'), document.getElementById('mlLoginPin')].forEach((inp) => {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('mlLoginBtn').click(); }
+    });
+  });
+
+  // ---------- Forgot PIN (hint-based recovery) ----------
+  let recoveryData = null;
+  document.getElementById('mlForgotPinBtn').addEventListener('click', async () => {
+    const name = document.getElementById('mlLoginName').value.trim();
+    const loginMsg = document.getElementById('mlLoginMsg');
+    loginMsg.textContent = '';
+    if (!name) { loginMsg.textContent = 'Type your name above first, then tap "Forgot PIN?".'; return; }
+    let data = null;
+    try {
+      data = await getRecoveryHint(slugName(name));
+    } catch (e) {
+      loginMsg.textContent = 'Could not check for a hint — ' + describeError(e);
+      return;
+    }
+    if (!data) {
+      loginMsg.textContent = 'No recovery hint was set up for that name.';
+      return;
+    }
+    recoveryData = data;
+    document.getElementById('mlRecoveryQuestion').textContent = 'Hint: ' + data.hint_question;
+    document.getElementById('mlRecoveryAnswer').value = '';
+    document.getElementById('mlRecoveryMsg').textContent = '';
+    document.getElementById('mlRecoveryPanel').style.display = 'block';
+    document.getElementById('mlRecoveryAnswer').focus();
+  });
+
+  document.getElementById('mlRecoveryRevealBtn').addEventListener('click', () => {
+    const answer = document.getElementById('mlRecoveryAnswer').value.trim().toLowerCase();
+    const rMsg = document.getElementById('mlRecoveryMsg');
+    if (!recoveryData) { rMsg.textContent = 'Something went wrong — try again.'; return; }
+    if (!answer) { rMsg.textContent = 'Enter your answer.'; return; }
+    if (answer === recoveryData.hint_answer) {
+      document.getElementById('mlLoginPin').value = recoveryData.pin;
+      document.getElementById('mlRecoveryPanel').style.display = 'none';
+      document.getElementById('mlLoginMsg').textContent = 'PIN recovered and filled in below — tap "Sign in".';
+    } else {
+      rMsg.textContent = "That answer doesn't match.";
+    }
+  });
+  document.getElementById('mlRecoveryAnswer').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('mlRecoveryRevealBtn').click(); }
+  });
+  document.getElementById('mlRecoveryCancelBtn').addEventListener('click', () => {
+    document.getElementById('mlRecoveryPanel').style.display = 'none';
+  });
+
+  function goToLoginScreen() {
+    if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
+    document.getElementById('mlAppBody').style.display = 'none';
+    document.getElementById('mlLoginScreen').style.display = 'flex';
+    document.getElementById('mlLoginPin').value = '';
+    document.getElementById('mlSignupCurrency').value = '₹';
+    document.getElementById('mlSignupRateRow').style.display = 'none';
+    document.getElementById('mlHintQuestion').value = '';
+    document.getElementById('mlHintAnswer').value = '';
+    currentAccountId = null;
+    currentAccountKey = null;
+    currentUserName = '';
+    currentCurrencySymbol = '₹';
+    currentCurrencyRate = 1;
+  }
+
+  // ---------- Profile hamburger menu ----------
+  const profileDropdown = document.getElementById('mlProfileDropdown');
+  const profileMenuBtn = document.getElementById('mlProfileMenuBtn');
+
+  function positionProfileDropdown() {
+    const rect = profileMenuBtn.getBoundingClientRect();
+    const margin = 12;
+    const ddWidth = Math.min(220, window.innerWidth - margin * 2);
+    let left = rect.right - ddWidth;
+    left = Math.max(margin, Math.min(left, window.innerWidth - ddWidth - margin));
+    profileDropdown.style.left = left + 'px';
+    profileDropdown.style.top = (rect.bottom + 6) + 'px';
+    profileDropdown.style.width = ddWidth + 'px';
+  }
+
+  profileMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = !profileDropdown.classList.contains('open');
+    if (willOpen) positionProfileDropdown();
+    profileDropdown.classList.toggle('open');
+  });
+  window.addEventListener('resize', () => {
+    if (profileDropdown.classList.contains('open')) positionProfileDropdown();
+  });
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('mlProfileMenuWrap').contains(e.target) && !profileDropdown.contains(e.target)) {
+      profileDropdown.classList.remove('open');
+    }
+  });
+
+  document.getElementById('mlSwitchUser').addEventListener('click', () => {
+    profileDropdown.classList.remove('open');
+    goToLoginScreen();
+    document.getElementById('mlLoginMsg').textContent = '';
+  });
+
+  document.getElementById('mlLogoutBtn').addEventListener('click', () => {
+    profileDropdown.classList.remove('open');
+    try { localStorage.removeItem(LASTUSER_KEY); } catch (e) { /* best-effort */ }
+    document.getElementById('mlLoginName').value = '';
+    goToLoginScreen();
+    document.getElementById('mlLoginMsg').textContent = '';
+  });
+
+  // ---------- Change PIN ----------
+  const changePinModal = document.getElementById('mlChangePinModal');
+  function openChangePinModal() {
+    profileDropdown.classList.remove('open');
+    document.getElementById('mlChangePinCurrent').value = '';
+    document.getElementById('mlChangePinNew').value = '';
+    document.getElementById('mlChangePinConfirm').value = '';
+    document.getElementById('mlChangePinErr').textContent = '';
+    changePinModal.classList.add('active');
+    document.getElementById('mlChangePinCurrent').focus();
+  }
+  function closeChangePinModal() {
+    changePinModal.classList.remove('active');
+  }
+  document.getElementById('mlChangePinOpenBtn').addEventListener('click', openChangePinModal);
+  document.getElementById('mlChangePinCancelBtn').addEventListener('click', closeChangePinModal);
+  changePinModal.addEventListener('click', (e) => {
+    if (e.target.id === 'mlChangePinModal') closeChangePinModal();
+  });
+
+  // ---------- Change Currency ----------
+  const changeCurrencyModal = document.getElementById('mlChangeCurrencyModal');
+  function openChangeCurrencyModal() {
+    profileDropdown.classList.remove('open');
+    const select = document.getElementById('mlChangeCurrencyInput');
+    select.value = currentCurrencySymbol;
+    const rateField = document.getElementById('mlChangeCurrencyRateField');
+    if (currentCurrencySymbol === '₹') {
+      rateField.style.display = 'none';
+    } else {
+      rateField.style.display = 'block';
+      document.getElementById('mlChangeCurrencyRate').value = currentCurrencyRate;
+    }
+    document.getElementById('mlChangeCurrencyErr').textContent = '';
+    changeCurrencyModal.classList.add('active');
+  }
+  function closeChangeCurrencyModal() {
+    changeCurrencyModal.classList.remove('active');
+  }
+  document.getElementById('mlChangeCurrencyOpenBtn').addEventListener('click', openChangeCurrencyModal);
+  document.getElementById('mlChangeCurrencyCancelBtn').addEventListener('click', closeChangeCurrencyModal);
+  changeCurrencyModal.addEventListener('click', (e) => {
+    if (e.target.id === 'mlChangeCurrencyModal') closeChangeCurrencyModal();
+  });
+  document.getElementById('mlChangeCurrencySaveBtn').addEventListener('click', async () => {
+    const err = document.getElementById('mlChangeCurrencyErr');
+    const select = document.getElementById('mlChangeCurrencyInput');
+    const val = select.value;
+    const rateVal = val === '₹' ? 1 : (Number(document.getElementById('mlChangeCurrencyRate').value) || Number(select.selectedOptions[0].dataset.rate));
+    if (!val) { err.textContent = 'Choose a currency.'; return; }
+    if (val !== '₹' && (!rateVal || rateVal <= 0)) { err.textContent = 'Enter a valid exchange rate.'; return; }
+    err.textContent = 'Saving…';
+    try {
+      await updateAccountCurrency(currentAccountId, val, rateVal);
+    } catch (e) {
+      err.textContent = 'Could not save — ' + describeError(e);
+      return;
+    }
+    currentCurrencySymbol = val;
+    currentCurrencyRate = rateVal;
+    applyCurrencyLabels();
+    closeChangeCurrencyModal();
+    render();
+    renderSavings();
+    renderMonthCard();
+  });
+  document.getElementById('mlChangeCurrencyRate').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('mlChangeCurrencySaveBtn').click(); }
+  });
+
+  // ---------- Calculator widget (draggable, compact) ----------
+  const calcWidget = document.getElementById('mlCalcWidget');
+  const calcHeader = document.getElementById('mlCalcHeader');
+  const calcDisplayEl = document.getElementById('mlCalcDisplay');
+
+  document.getElementById('mlCalculatorOpenBtn').addEventListener('click', () => {
+    profileDropdown.classList.remove('open');
+    calcWidget.classList.add('active');
+  });
+  document.getElementById('mlCalcCloseBtn').addEventListener('click', () => {
+    calcWidget.classList.remove('active');
+  });
+
+  const calcResizeBtn = document.getElementById('mlCalcResizeBtn');
+  calcResizeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isCompact = calcWidget.classList.toggle('compact');
+    calcResizeBtn.textContent = isCompact ? '＋' : '－';
+    calcResizeBtn.title = isCompact ? 'Enlarge' : 'Shrink';
+  });
+  // Prevent the header's drag handler from starting when tapping the header buttons
+  [calcResizeBtn, document.getElementById('mlCalcCloseBtn')].forEach((btn) => {
+    btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  });
+
+  // Drag behavior (works for both touch and mouse via Pointer Events)
+  (function makeCalcDraggable() {
+    let dragging = false;
+    let offsetX = 0, offsetY = 0;
+    calcHeader.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      const rect = calcWidget.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      calcWidget.style.right = 'auto';
+      try { calcHeader.setPointerCapture(e.pointerId); } catch (err) { /* best-effort */ }
+    });
+    calcHeader.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      let left = e.clientX - offsetX;
+      let top = e.clientY - offsetY;
+      const maxLeft = window.innerWidth - calcWidget.offsetWidth - 4;
+      const maxTop = window.innerHeight - calcWidget.offsetHeight - 4;
+      left = Math.max(4, Math.min(left, maxLeft));
+      top = Math.max(4, Math.min(top, maxTop));
+      calcWidget.style.left = left + 'px';
+      calcWidget.style.top = top + 'px';
+    });
+    function stopDrag(e) {
+      dragging = false;
+      try { calcHeader.releasePointerCapture(e.pointerId); } catch (err) { /* best-effort */ }
+    }
+    calcHeader.addEventListener('pointerup', stopDrag);
+    calcHeader.addEventListener('pointercancel', stopDrag);
+  })();
+
+  // Calculator arithmetic (simple state machine, no eval)
+  let calcDisplay = '0';
+  let calcPrevValue = null;
+  let calcOperator = null;
+  let calcWaitingForOperand = false;
+
+  function calcRound(n) {
+    return Math.round(n * 1e8) / 1e8;
+  }
+  function updateCalcDisplay() {
+    calcDisplayEl.textContent = calcDisplay;
+    const exprEl = document.getElementById('mlCalcExpr');
+    exprEl.textContent = (calcPrevValue !== null && calcOperator) ? (calcPrevValue + ' ' + calcOperator) : '';
+  }
+  function calcCompute(a, b, op) {
+    switch (op) {
+      case '+': return calcRound(a + b);
+      case '−': return calcRound(a - b);
+      case '×': return calcRound(a * b);
+      case '÷': return b === 0 ? 0 : calcRound(a / b);
+      default: return b;
+    }
+  }
+  function calcInputDigit(d) {
+    if (calcWaitingForOperand) {
+      calcDisplay = d;
+      calcWaitingForOperand = false;
+    } else {
+      calcDisplay = calcDisplay === '0' ? d : calcDisplay + d;
+    }
+    updateCalcDisplay();
+  }
+  function calcInputDecimal() {
+    if (calcWaitingForOperand) {
+      calcDisplay = '0.';
+      calcWaitingForOperand = false;
+    } else if (!calcDisplay.includes('.')) {
+      calcDisplay += '.';
+    }
+    updateCalcDisplay();
+  }
+  function calcClear() {
+    calcDisplay = '0';
+    calcPrevValue = null;
+    calcOperator = null;
+    calcWaitingForOperand = false;
+    updateCalcDisplay();
+  }
+  function calcBackspace() {
+    calcDisplay = calcDisplay.length > 1 ? calcDisplay.slice(0, -1) : '0';
+    updateCalcDisplay();
+  }
+  function calcPerformOperation(nextOperator) {
+    const inputValue = parseFloat(calcDisplay);
+    if (calcPrevValue === null) {
+      calcPrevValue = inputValue;
+    } else if (calcOperator && !calcWaitingForOperand) {
+      calcPrevValue = calcCompute(calcPrevValue, inputValue, calcOperator);
+      calcDisplay = String(calcPrevValue);
+    }
+    calcWaitingForOperand = true;
+    calcOperator = nextOperator;
+    updateCalcDisplay();
+  }
+  function calcEquals() {
+    if (calcOperator !== null && calcPrevValue !== null) {
+      const inputValue = parseFloat(calcDisplay);
+      calcDisplay = String(calcCompute(calcPrevValue, inputValue, calcOperator));
+      calcPrevValue = null;
+      calcOperator = null;
+      calcWaitingForOperand = true;
+      updateCalcDisplay();
+    }
+  }
+
+  document.querySelectorAll('[data-calc-digit]').forEach((btn) => {
+    btn.addEventListener('click', () => calcInputDigit(btn.dataset.calcDigit));
+  });
+  document.querySelectorAll('[data-calc-op]').forEach((btn) => {
+    btn.addEventListener('click', () => calcPerformOperation(btn.dataset.calcOp));
+  });
+  document.querySelector('[data-calc-decimal]').addEventListener('click', calcInputDecimal);
+  document.querySelector('[data-calc-clear]').addEventListener('click', calcClear);
+  document.querySelector('[data-calc-backspace]').addEventListener('click', calcBackspace);
+  document.getElementById('mlCalcEquals').addEventListener('click', calcEquals);
+
+  document.getElementById('mlChangePinSaveBtn').addEventListener('click', async () => {
+    const err = document.getElementById('mlChangePinErr');
+    const curPin = document.getElementById('mlChangePinCurrent').value.trim();
+    const newPin = document.getElementById('mlChangePinNew').value.trim();
+    const confirmPin = document.getElementById('mlChangePinConfirm').value.trim();
+
+    if (!/^\d{4}$/.test(curPin)) { err.textContent = 'Enter your current 4-digit PIN.'; return; }
+    if (!/^\d{4}$/.test(newPin)) { err.textContent = 'New PIN must be exactly 4 digits.'; return; }
+    if (newPin !== confirmPin) { err.textContent = "New PIN entries don't match."; return; }
+    if (newPin === curPin) { err.textContent = 'New PIN must be different from your current one.'; return; }
+    if (slugifyId(currentUserName, curPin) !== currentAccountKey) { err.textContent = 'Current PIN is incorrect.'; return; }
+
+    const newAccountKey = slugifyId(currentUserName, newPin);
+    err.textContent = 'Checking…';
+    let clash;
+    try {
+      clash = await findAccountByKey(newAccountKey);
+    } catch (e) {
+      err.textContent = 'Could not check that PIN — ' + describeError(e);
+      return;
+    }
+    if (clash) { err.textContent = 'That PIN is already used with this name — choose a different one.'; return; }
+
+    err.textContent = 'Saving…';
+    try {
+      await renameAccountKey(currentAccountId, newAccountKey);
+    } catch (e) {
+      err.textContent = 'Could not save the new PIN — ' + describeError(e);
+      return;
+    }
+    currentAccountKey = newAccountKey;
+    try {
+      localStorage.setItem(LASTUSER_KEY, JSON.stringify({ accountKey: currentAccountKey, name: currentUserName, expiresAt: Date.now() + SESSION_DURATION_MS }));
+    } catch (e) { /* best-effort */ }
+    scheduleSessionTimeout(SESSION_DURATION_MS);
+    try {
+      const hint = await getRecoveryHint(slugName(currentUserName));
+      if (hint) await upsertRecoveryHint(slugName(currentUserName), currentAccountId, newPin, hint.hint_question, hint.hint_answer);
+    } catch (e) { /* no hint was set, or update failed — not critical */ }
+
+    closeChangePinModal();
+    statusMsgEl.textContent = 'PIN changed successfully.';
+    statusEl.classList.remove('err');
+    statusRetryBtn.style.display = 'none';
+    statusEl.style.display = 'flex';
+    setTimeout(() => { statusEl.style.display = 'none'; }, 3500);
+  });
+  [document.getElementById('mlChangePinCurrent'), document.getElementById('mlChangePinNew'), document.getElementById('mlChangePinConfirm')].forEach((inp) => {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('mlChangePinSaveBtn').click(); }
+    });
+  });
+
+  // ---------- Load everything for the signed-in account ----------
+  async function loadAllData() {
+    statusEl.style.display = 'none';
+    try {
+      transactions = await fetchTransactions(currentAccountId);
+    } catch (e) {
+      transactions = [];
+      showSaveError('Could not load your transactions.', e);
+    }
+    try {
+      opening = await fetchOpening(currentAccountId);
+    } catch (e) {
+      opening = { cash: 0, online: 0 };
+    }
+    try {
+      monthlyBalances = await fetchMonthlyBalances(currentAccountId);
+    } catch (e) {
+      monthlyBalances = {};
+    }
+    try {
+      savingsTransactions = await fetchSavingsTransactions(currentAccountId);
+    } catch (e) {
+      savingsTransactions = [];
+    }
+    try {
+      savingsOpening = await fetchSavingsOpening(currentAccountId);
+    } catch (e) {
+      savingsOpening = 0;
+    }
+    renderMonthCard();
+    render();
+    renderSavings();
+  }
+
+  // ---------- Special daily love popup (piyu / any PIN) ----------
+  const LOVE_HEART_CHARS = ['💗', '💕', '💖', '❤️', '💓', '✨'];
+  function spawnHearts(container, count) {
+    container.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      const span = document.createElement('span');
+      span.className = 'ml-love-heart';
+      span.textContent = LOVE_HEART_CHARS[Math.floor(Math.random() * LOVE_HEART_CHARS.length)];
+      span.style.left = Math.random() * 100 + '%';
+      span.style.fontSize = (14 + Math.random() * 20) + 'px';
+      span.style.animationDuration = (4 + Math.random() * 4) + 's';
+      span.style.animationDelay = (Math.random() * 3) + 's';
+      container.appendChild(span);
+    }
+  }
+  function showLovePopup() {
+    spawnHearts(document.getElementById('mlLoveHearts'), 32);
+    document.getElementById('mlLovePopup').classList.add('active');
+  }
+  function closeLovePopup() {
+    document.getElementById('mlLovePopup').classList.remove('active');
+  }
+  document.getElementById('mlLoveClose').addEventListener('click', closeLovePopup);
+  document.getElementById('mlLovePopup').addEventListener('click', (e) => {
+    if (e.target.id === 'mlLovePopup') closeLovePopup();
+  });
+
+  async function maybeShowLovePopup() {
+    if (slugName(currentUserName) !== 'piyu') return;
+    const key = 'moneyLedgerLoveShown:piyu';
+    const todayStr = new Date().toISOString().slice(0, 10);
+    let last = null;
+    try { last = localStorage.getItem(key); } catch (e) { last = null; }
+    if (last === todayStr) return;
+    showLovePopup();
+    try { localStorage.setItem(key, todayStr); } catch (e) { /* best-effort — worst case it shows again */ }
+  }
+
+  // ---------- Inline edit rows (cash / online) ----------
+  function wireEditRow(opts) {
+    const editBtn = document.getElementById(opts.editBtnId);
+    const row = document.getElementById(opts.rowId);
+    const input = document.getElementById(opts.inputId);
+    const okBtn = document.getElementById(opts.okBtnId);
+    const cancelBtn = document.getElementById(opts.cancelBtnId);
+    const errEl = document.getElementById(opts.errId);
+
+    function open() {
+      input.value = opts.getCurrent();
+      row.classList.add('active');
+      errEl.textContent = '';
+      input.focus();
+      input.select();
+    }
+    function close() {
+      row.classList.remove('active');
+      errEl.textContent = '';
+    }
+    async function confirmEdit() {
+      const err = await opts.onConfirm(input.value);
+      if (err) { errEl.textContent = err; return; }
+      close();
+    }
+
+    editBtn.addEventListener('click', () => {
+      if (row.classList.contains('active')) { close(); } else { open(); }
+    });
+    okBtn.addEventListener('click', confirmEdit);
+    cancelBtn.addEventListener('click', close);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); confirmEdit(); }
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+    });
+  }
+
+  function monthlyCap() {
+    const val = monthlyBalances[currentMonthKey()];
+    if (!val) return null;
+    return round2((val.cash || 0) + (val.online || 0));
+  }
+
+  async function applyBalanceAdjustment(field, diff) {
+    if (Math.abs(diff) < 0.005) return;
+    const type = diff > 0 ? 'income' : 'expense';
+    const amt = round2(Math.abs(diff));
+    const row = await insertTransactionRow(currentAccountId, {
+      date: todayStr(),
+      desc: 'Balance adjustment',
+      category: 'Adjustment',
+      type,
+      cashAmount: field === 'cash' ? amt : 0,
+      onlineAmount: field === 'online' ? amt : 0,
+      total: amt
+    });
+    transactions.unshift(row);
+  }
+
+  // ---------- Main tab bar (Transactions / Summary / Savings) ----------
+  document.querySelectorAll('.ml-main-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ml-main-tab').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = btn.dataset.panel;
+      document.getElementById('mlTransactionsPanel').style.display = panel === 'transactions' ? 'block' : 'none';
+      document.getElementById('mlSummaryPanel').style.display = panel === 'summary' ? 'block' : 'none';
+      document.getElementById('mlSavingsPanel').style.display = panel === 'savings' ? 'block' : 'none';
+      if (panel === 'summary') renderSummaryPanel();
+    });
+  });
+
+  let summaryPeriod = 'month';
+  document.querySelectorAll('.ml-period-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ml-period-tab').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      summaryPeriod = btn.dataset.period;
+      renderSummaryPanel();
+    });
+  });
+
+  // ---------- Savings ----------
+  function computeSavingsBalance(excludeOpening) {
+    let bal = 0;
+    savingsTransactions.forEach((t) => {
+      bal += (t.type === 'deposit' ? t.amount : -t.amount);
+    });
+    if (!excludeOpening) bal += (savingsOpening || 0);
+    return round2(bal);
+  }
+
+  const savingsForm = document.getElementById('mlSavingsForm');
+  document.getElementById('mlSavingsDate').valueAsDate = new Date();
+  let currentSavType = 'deposit';
+
+  document.querySelectorAll('[data-savtype]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-savtype]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSavType = btn.dataset.savtype;
+      document.getElementById('mlSavingsLinkLabel').textContent = currentSavType === 'deposit' ? 'Fund from' : 'Send to';
+    });
+  });
+
+  let editingSavingsId = null;
+
+  function resetSavingsForm() {
+    savingsForm.reset();
+    document.getElementById('mlSavingsDate').valueAsDate = new Date();
+    document.querySelectorAll('[data-savtype]').forEach((b) => b.classList.remove('active'));
+    document.querySelector('[data-savtype="deposit"]').classList.add('active');
+    currentSavType = 'deposit';
+    document.getElementById('mlSavingsLinkLabel').textContent = 'Fund from';
+  }
+
+  function cancelEditSavings() {
+    editingSavingsId = null;
+    document.getElementById('mlSavingsFormSubmitBtn').textContent = 'Save savings entry';
+    document.getElementById('mlSavingsCancelEditBtn').style.display = 'none';
+    document.getElementById('mlSavingsFormMsg').textContent = '';
+    resetSavingsForm();
+  }
+  document.getElementById('mlSavingsCancelEditBtn').addEventListener('click', cancelEditSavings);
+
+  function openEditSavings(id) {
+    const t = savingsTransactions.find((x) => x.id === id);
+    if (!t) return;
+    editingSavingsId = id;
+    document.getElementById('mlSavingsDesc').value = t.desc;
+    document.getElementById('mlSavingsDate').value = t.date;
+    document.getElementById('mlSavingsAmount').value = t.amount;
+    document.getElementById('mlSavingsLink').value = t.link;
+    document.querySelectorAll('[data-savtype]').forEach((b) => b.classList.remove('active'));
+    document.querySelector('[data-savtype="' + t.type + '"]').classList.add('active');
+    currentSavType = t.type;
+    document.getElementById('mlSavingsLinkLabel').textContent = currentSavType === 'deposit' ? 'Fund from' : 'Send to';
+
+    document.getElementById('mlSavingsFormSubmitBtn').textContent = 'Update entry';
+    document.getElementById('mlSavingsCancelEditBtn').style.display = 'inline-block';
+    document.getElementById('mlSavingsFormMsg').textContent = '';
+    document.getElementById('mlSavingsForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  savingsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('mlSavingsFormMsg');
+    msg.textContent = '';
+    const desc = document.getElementById('mlSavingsDesc').value.trim() || (currentSavType === 'deposit' ? 'Savings deposit' : 'Savings withdrawal');
+    const date = document.getElementById('mlSavingsDate').value;
+    const amount = Number(document.getElementById('mlSavingsAmount').value);
+    const link = document.getElementById('mlSavingsLink').value;
+
+    if (!amount || amount <= 0) { msg.textContent = 'Enter an amount greater than zero.'; return; }
+    if (!date) { msg.textContent = 'Please pick a date.'; return; }
+
+    const oldEntry = editingSavingsId ? savingsTransactions.find((x) => x.id === editingSavingsId) : null;
+
+    // If editing, first undo the OLD entry's effect on savings + any linked cash/online transaction,
+    // so validation and the new effect are computed against the true "before this entry" state.
+    if (oldEntry && oldEntry.linkTxId) {
+      try {
+        await deleteTransactionRow(oldEntry.linkTxId);
+        transactions = transactions.filter((t) => t.id !== oldEntry.linkTxId);
+      } catch (e) {
+        msg.textContent = 'Could not update — ' + describeError(e);
+        return;
+      }
+    }
+    const oldSavEffect = oldEntry ? (oldEntry.type === 'deposit' ? oldEntry.amount : -oldEntry.amount) : 0;
+    const baseSavBal = round2(computeSavingsBalance() - oldSavEffect);
+
+    if (currentSavType === 'withdrawal' && round2(baseSavBal - amount) < -0.005) {
+      msg.textContent = 'Not enough in savings for that withdrawal.';
+      return;
+    }
+
+    let linkTxId = null;
+    if (link === 'cash' || link === 'online') {
+      const bal = computeBalances();
+      const accountLabel = link === 'cash' ? 'Cash' : 'Online';
+      let cashAmount = 0, onlineAmount = 0, transferDesc;
+      if (currentSavType === 'deposit') {
+        const newBal = link === 'cash' ? round2(bal.cash - amount) : round2(bal.online - amount);
+        if (newBal < -0.005) {
+          msg.textContent = 'Not enough ' + (link === 'cash' ? 'cash' : 'online balance') + ' to fund this.';
+          return;
+        }
+        if (link === 'cash') cashAmount = -amount; else onlineAmount = -amount;
+        transferDesc = 'Transfer: ' + accountLabel + ' → Savings';
+      } else {
+        if (link === 'cash') cashAmount = amount; else onlineAmount = amount;
+        transferDesc = 'Transfer: Savings → ' + accountLabel;
+      }
+      try {
+        const txRow = await insertTransactionRow(currentAccountId, {
+          date, desc: transferDesc, category: 'Transfer', type: 'transfer',
+          cashAmount: round2(cashAmount), onlineAmount: round2(onlineAmount), total: amount
+        });
+        transactions.unshift(txRow);
+        linkTxId = txRow.id;
+      } catch (e) {
+        msg.textContent = 'Could not save — ' + describeError(e);
+        return;
+      }
+    }
+
+    try {
+      if (editingSavingsId) {
+        await updateSavingsFull(editingSavingsId, { date, desc, type: currentSavType, amount: round2(amount), link, linkTxId });
+        const idx = savingsTransactions.findIndex((x) => x.id === editingSavingsId);
+        if (idx > -1) savingsTransactions[idx] = { id: editingSavingsId, date, desc, type: currentSavType, amount: round2(amount), link, linkTxId };
+      } else {
+        const row = await insertSavingsRow(currentAccountId, { date, desc, type: currentSavType, amount: round2(amount), link, linkTxId });
+        savingsTransactions.unshift(row);
+      }
+    } catch (e) {
+      msg.textContent = 'Could not save — ' + describeError(e);
+      return;
+    }
+
+    editingSavingsId = null;
+    document.getElementById('mlSavingsFormSubmitBtn').textContent = 'Save savings entry';
+    document.getElementById('mlSavingsCancelEditBtn').style.display = 'none';
+    resetSavingsForm();
+
+    render();
+    renderSavings();
+  });
+
+  async function deleteSavingsEntry(id) {
+    const entry = savingsTransactions.find((t) => t.id === id);
+    try {
+      if (entry && entry.linkTxId) {
+        await deleteTransactionRow(entry.linkTxId);
+        transactions = transactions.filter((t) => t.id !== entry.linkTxId);
+      }
+      await deleteSavingsRow(id);
+    } catch (e) {
+      showSaveError('Could not delete that savings entry.', e);
+      return;
+    }
+    savingsTransactions = savingsTransactions.filter((t) => t.id !== id);
+    render();
+    renderSavings();
+  }
+
+  function renderSavingsTable() {
+    const tbody = document.getElementById('mlSavingsTableBody');
+    const showMoreBtn = document.getElementById('mlSavingsShowMoreBtn');
+    tbody.innerHTML = '';
+    if (!savingsTransactions.length) {
+      tbody.innerHTML = '<div class="ml-empty">No savings entries yet.</div>';
+      showMoreBtn.style.display = 'none';
+    } else {
+      const SAVINGS_PAGE_SIZE = 3;
+      const visible = savingsExpanded ? savingsTransactions : savingsTransactions.slice(0, SAVINGS_PAGE_SIZE);
+      visible.forEach((t) => {
+        const row = document.createElement('div');
+        row.className = 'ml-ledger-row';
+        const linkLabel = t.link === 'cash' ? 'Linked to Cash' : (t.link === 'online' ? 'Linked to Online' : 'Outside money');
+        const badgeType = t.type === 'deposit' ? 'income' : 'expense';
+        const badgeText = t.type === 'deposit' ? 'deposit' : 'withdrawal';
+        row.innerHTML =
+          '<div class="ml-ledger-row-top">' +
+            '<span class="ml-ledger-date">' + formatDate(t.date) + '</span>' +
+            '<span class="ml-badge ' + badgeType + '">' + badgeText + '</span>' +
+          '</div>' +
+          '<div class="ml-ledger-desc">' + escapeHtml(t.desc) + '</div>' +
+          '<div class="ml-ledger-meta"><span>' + linkLabel + '</span></div>' +
+          '<div class="ml-ledger-bottom">' +
+            '<div>' +
+              '<span class="ml-ledger-total">' + fmt(t.amount) + '</span>' +
+              inrLine(t.amount) +
+            '</div>' +
+            '<div class="ml-row-actions">' +
+              '<button class="ml-edit-entry" title="Edit entry" data-savedit="' + t.id + '">✎</button>' +
+              '<button class="ml-del" title="Delete entry" data-savid="' + t.id + '">✕</button>' +
+            '</div>' +
+          '</div>';
+        tbody.appendChild(row);
+      });
+      tbody.querySelectorAll('.ml-del').forEach((btn) => {
+        btn.addEventListener('click', async () => { await deleteSavingsEntry(btn.dataset.savid); });
+      });
+      tbody.querySelectorAll('.ml-edit-entry').forEach((btn) => {
+        btn.addEventListener('click', () => openEditSavings(btn.dataset.savedit));
+      });
+
+      if (savingsTransactions.length > SAVINGS_PAGE_SIZE) {
+        showMoreBtn.style.display = 'block';
+        showMoreBtn.textContent = savingsExpanded
+          ? '▴ Show less'
+          : '▾ Show all ' + savingsTransactions.length + ' entries';
+      } else {
+        showMoreBtn.style.display = 'none';
+      }
+    }
+    document.getElementById('mlSavingsCount').textContent = savingsTransactions.length + ' entr' + (savingsTransactions.length === 1 ? 'y' : 'ies');
+  }
+
+  document.getElementById('mlSavingsShowMoreBtn').addEventListener('click', () => {
+    savingsExpanded = !savingsExpanded;
+    renderSavingsTable();
+  });
+
+  function renderSavings() {
+    document.getElementById('mlSavingsBal').textContent = fmt(computeSavingsBalance());
+    renderSavingsTable();
+  }
+
+  // ---------- Summary tab ----------
+  function transactionsForSummary() {
+    return transactions.filter((t) => {
+      if (t.type === 'transfer') return false;
+      if (summaryPeriod === 'month') return t.date && t.date.slice(0, 7) === currentMonthKey();
+      return true;
+    });
+  }
+
+  function categoryBreakdownFor(list) {
+    const map = {};
+    list.forEach((t) => {
+      const cat = t.category || 'Other';
+      map[cat] = (map[cat] || 0) + (t.total || 0);
+    });
+    return Object.entries(map)
+      .map(([cat, amt]) => ({ cat, amt: round2(amt) }))
+      .sort((a, b) => b.amt - a.amt);
+  }
+
+  const ML_PIE_COLORS = ['#77A6E0', '#DDAE55', '#5CC08C', '#E5787A', '#B491DD', '#4FB8C4', '#E0A05C', '#8AA6C2'];
+
+  function renderPieAndLegend(pieId, centerAmtId, legendId, cats, emptyMsg) {
+    const pieEl = document.getElementById(pieId);
+    const centerEl = document.getElementById(centerAmtId);
+    const legendEl = document.getElementById(legendId);
+    legendEl.innerHTML = '';
+
+    const total = round2(cats.reduce((s, c) => s + c.amt, 0));
+    centerEl.textContent = fmt(total);
+
+    if (!cats.length || total <= 0) {
+      pieEl.style.background = 'var(--paper)';
+      legendEl.innerHTML = '<div class="ml-empty" style="padding:6px 0;">' + emptyMsg + '</div>';
+      return;
+    }
+
+    let cursor = 0;
+    const stops = [];
+    cats.forEach((c, i) => {
+      const color = ML_PIE_COLORS[i % ML_PIE_COLORS.length];
+      const pct = (c.amt / total) * 100;
+      const start = cursor;
+      const end = cursor + pct;
+      stops.push(color + ' ' + start + '% ' + end + '%');
+      cursor = end;
+    });
+    pieEl.style.background = 'conic-gradient(' + stops.join(', ') + ')';
+
+    cats.forEach((c, i) => {
+      const color = ML_PIE_COLORS[i % ML_PIE_COLORS.length];
+      const pct = Math.round((c.amt / total) * 100);
+      const row = document.createElement('div');
+      row.className = 'ml-pie-legend-row';
+      row.innerHTML =
+        '<div class="ml-pie-dot" style="background:' + color + '"></div>' +
+        '<div class="ml-pie-legend-name" title="' + escapeHtml(c.cat) + '">' + escapeHtml(categoryLabel(c.cat)) + '</div>' +
+        '<div class="ml-pie-legend-pct">' + pct + '%</div>' +
+        '<div class="ml-pie-legend-amt">' + fmt(c.amt) + '</div>';
+      legendEl.appendChild(row);
+    });
+  }
+
+  function renderSummaryPanel() {
+    const list = transactionsForSummary();
+    const expenses = list.filter((t) => t.type === 'expense');
+    const incomes = list.filter((t) => t.type === 'income');
+
+    const totalIncome = round2(incomes.reduce((s, t) => s + (t.total || 0), 0));
+    const totalExpense = round2(expenses.reduce((s, t) => s + (t.total || 0), 0));
+    const net = round2(totalIncome - totalExpense);
+
+    document.getElementById('mlSumIncome').textContent = fmt(totalIncome);
+    document.getElementById('mlSumExpense').textContent = fmt(totalExpense);
+    const netEl = document.getElementById('mlSumNet');
+    netEl.textContent = fmt(net);
+    netEl.style.color = net < 0 ? 'var(--danger)' : 'var(--cash)';
+
+    const cashSpent = round2(expenses.reduce((s, t) => s + (t.cashAmount || 0), 0));
+    const onlineSpent = round2(expenses.reduce((s, t) => s + (t.onlineAmount || 0), 0));
+    const cvoTotal = cashSpent + onlineSpent || 1;
+    document.getElementById('mlCvoCashAmt').textContent = fmt(cashSpent);
+    document.getElementById('mlCvoOnlineAmt').textContent = fmt(onlineSpent);
+    document.getElementById('mlCvoCashFill').style.width = ((cashSpent / cvoTotal) * 100) + '%';
+    document.getElementById('mlCvoOnlineFill').style.width = ((onlineSpent / cvoTotal) * 100) + '%';
+
+    const expenseCats = categoryBreakdownFor(expenses.filter((t) => t.category !== 'Adjustment'));
+    renderPieAndLegend('mlSumExpensePie', 'mlSumExpensePieTotal', 'mlSumExpenseCatList', expenseCats, 'No expenses recorded ' + (summaryPeriod === 'month' ? 'this month' : 'yet') + '.');
+
+    const topCatEl = document.getElementById('mlSumTopCat');
+    if (expenseCats.length) {
+      const top = expenseCats[0];
+      const realExpenseTotal = round2(expenses.filter((t) => t.category !== 'Adjustment').reduce((s, t) => s + (t.total || 0), 0));
+      const pctOfTotal = realExpenseTotal > 0 ? Math.round((top.amt / realExpenseTotal) * 100) : 0;
+      topCatEl.textContent = 'Biggest category: ' + categoryLabel(top.cat) + ' at ' + fmt(top.amt) + ' (' + pctOfTotal + '% of spending).';
+    } else {
+      topCatEl.textContent = '';
+    }
+
+    const incomeCats = categoryBreakdownFor(incomes.filter((t) => t.category !== 'Adjustment'));
+    renderPieAndLegend('mlSumIncomePie', 'mlSumIncomePieTotal', 'mlSumIncomeCatList', incomeCats, 'No income recorded ' + (summaryPeriod === 'month' ? 'this month' : 'yet') + '.');
+  }
+
+  // ---------- Type toggle ----------
+  const splitBox = document.getElementById('mlSplitBox');
+  const transferBox = document.getElementById('mlTransferBox');
+  const descField = document.getElementById('mlDesc');
+  const categoryField = document.getElementById('mlCategory');
+
+  function applyTypeUI() {
+    if (currentType === 'transfer') {
+      splitBox.style.display = 'none';
+      transferBox.classList.add('active');
+      descField.removeAttribute('required');
+      categoryField.parentElement.style.display = 'none';
+    } else {
+      splitBox.style.display = '';
+      transferBox.classList.remove('active');
+      descField.setAttribute('required', 'required');
+      categoryField.parentElement.style.display = '';
+    }
+  }
+
+  document.querySelectorAll('.ml-type-btn[data-type]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ml-type-btn[data-type]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentType = btn.dataset.type;
+      applyTypeUI();
+    });
+  });
+
+  document.querySelectorAll('.ml-dir-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ml-dir-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentDir = btn.dataset.dir;
+    });
+  });
+
+  // ---------- Split slider ----------
+  const slider = document.getElementById('mlSplitSlider');
+  const amountInput = document.getElementById('mlAmount');
+  const barCash = document.getElementById('mlBarCash');
+  const barOnline = document.getElementById('mlBarOnline');
+  const splitReadout = document.getElementById('mlSplitReadout');
+
+  function updateSplitVisual() {
+    const pct = Number(slider.value);
+    const total = Number(amountInput.value) || 0;
+    const cashAmt = round2(total * pct / 100);
+    const onlineAmt = round2(total - cashAmt);
+    barCash.style.width = pct + '%';
+    barOnline.style.width = (100 - pct) + '%';
+    barCash.textContent = pct > 12 ? fmt(cashAmt) : '';
+    barOnline.textContent = (100 - pct) > 12 ? fmt(onlineAmt) : '';
+    splitReadout.textContent = pct + '% cash / ' + (100 - pct) + '% online';
+  }
+  slider.addEventListener('input', updateSplitVisual);
+  amountInput.addEventListener('input', updateSplitVisual);
+
+  document.querySelectorAll('.ml-quick').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      slider.value = btn.dataset.pct;
+      updateSplitVisual();
+    });
+  });
+
+  // ---------- Add transaction form ----------
+  const form = document.getElementById('mlForm');
+  document.getElementById('mlDate').valueAsDate = new Date();
+
+  let editingTransactionId = null;
+
+  function effectOf(t) {
+    // Returns the signed { cash, online } effect a transaction has on balances.
+    if (t.type === 'transfer') return { cash: t.cashAmount, online: t.onlineAmount };
+    const s = t.type === 'income' ? 1 : -1;
+    return { cash: s * t.cashAmount, online: s * t.onlineAmount };
+  }
+
+  function resetTransactionForm() {
+    form.reset();
+    document.getElementById('mlDate').valueAsDate = new Date();
+    slider.value = 50;
+    document.querySelectorAll('.ml-type-btn[data-type]').forEach((b) => b.classList.remove('active'));
+    document.querySelector('.ml-type-btn[data-type="expense"]').classList.add('active');
+    document.querySelectorAll('.ml-dir-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelector('.ml-dir-btn[data-dir="cash-to-online"]').classList.add('active');
+    currentType = 'expense';
+    currentDir = 'cash-to-online';
+    applyTypeUI();
+    updateSplitVisual();
+  }
+
+  function cancelEditTransaction() {
+    editingTransactionId = null;
+    document.getElementById('mlFormSubmitBtn').textContent = 'Add to ledger';
+    document.getElementById('mlCancelEditBtn').style.display = 'none';
+    formMsg.textContent = '';
+    resetTransactionForm();
+  }
+  document.getElementById('mlCancelEditBtn').addEventListener('click', cancelEditTransaction);
+
+  function openEditTransaction(id) {
+    const t = transactions.find((x) => x.id === id);
+    if (!t) return;
+    editingTransactionId = id;
+    document.getElementById('mlDesc').value = t.desc;
+    document.getElementById('mlCategory').value = t.category || 'General';
+    document.getElementById('mlDate').value = t.date;
+    amountInput.value = t.total;
+
+    document.querySelectorAll('.ml-type-btn[data-type]').forEach((b) => b.classList.remove('active'));
+    document.querySelector('.ml-type-btn[data-type="' + t.type + '"]').classList.add('active');
+    currentType = t.type;
+
+    if (t.type === 'transfer') {
+      currentDir = t.cashAmount < 0 ? 'cash-to-online' : 'online-to-cash';
+      document.querySelectorAll('.ml-dir-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelector('.ml-dir-btn[data-dir="' + currentDir + '"]').classList.add('active');
+    } else {
+      const pct = t.total > 0 ? Math.round((t.cashAmount / t.total) * 100) : 50;
+      slider.value = pct;
+    }
+    applyTypeUI();
+    updateSplitVisual();
+
+    document.getElementById('mlFormSubmitBtn').textContent = 'Update entry';
+    document.getElementById('mlCancelEditBtn').style.display = 'inline-block';
+    formMsg.textContent = '';
+    document.getElementById('mlForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formMsg.textContent = '';
+    let desc = document.getElementById('mlDesc').value.trim();
+    const category = document.getElementById('mlCategory').value;
+    const date = document.getElementById('mlDate').value;
+    const amount = Number(amountInput.value);
+    const pct = Number(slider.value);
+
+    if (currentType !== 'transfer' && !desc) { formMsg.textContent = 'Please add a description.'; return; }
+    if (!amount || amount <= 0) { formMsg.textContent = 'Enter an amount greater than zero.'; return; }
+    if (!date) { formMsg.textContent = 'Please pick a date.'; return; }
+
+    let cashAmount, onlineAmount;
+    if (currentType === 'transfer') {
+      if (currentDir === 'cash-to-online') {
+        cashAmount = -amount;
+        onlineAmount = amount;
+        if (!desc) desc = 'Transfer: Cash → Online';
+      } else {
+        cashAmount = amount;
+        onlineAmount = -amount;
+        if (!desc) desc = 'Transfer: Online → Cash';
+      }
+      cashAmount = round2(cashAmount);
+      onlineAmount = round2(onlineAmount);
+    } else {
+      cashAmount = round2(amount * pct / 100);
+      onlineAmount = round2(amount - cashAmount);
+    }
+
+    const bal = computeBalances();
+    let baseCash = bal.cash, baseOnline = bal.online;
+    let oldEntry = null;
+    if (editingTransactionId) {
+      oldEntry = transactions.find((x) => x.id === editingTransactionId);
+      if (oldEntry) {
+        const oldEffect = effectOf(oldEntry);
+        baseCash = round2(baseCash - oldEffect.cash);
+        baseOnline = round2(baseOnline - oldEffect.online);
+      }
+    }
+
+    const newEntryShape = { type: currentType, cashAmount, onlineAmount };
+    const newEffect = effectOf(newEntryShape);
+    const newCash = round2(baseCash + newEffect.cash);
+    const newOnline = round2(baseOnline + newEffect.online);
+
+    if (newCash < -0.005) { formMsg.textContent = 'Not enough cash — this would take your cash balance negative.'; return; }
+    if (newOnline < -0.005) { formMsg.textContent = 'Not enough online balance — this would take it negative.'; return; }
+
+    const finalCategory = currentType === 'transfer' ? 'Transfer' : category;
+
+    try {
+      if (editingTransactionId) {
+        await updateTransactionFull(editingTransactionId, { date, desc, category: finalCategory, type: currentType, cashAmount, onlineAmount, total: amount });
+        const idx = transactions.findIndex((x) => x.id === editingTransactionId);
+        if (idx > -1) transactions[idx] = { id: editingTransactionId, date, desc, category: finalCategory, type: currentType, cashAmount, onlineAmount, total: amount };
+      } else {
+        const row = await insertTransactionRow(currentAccountId, { date, desc, category: finalCategory, type: currentType, cashAmount, onlineAmount, total: amount });
+        transactions.unshift(row);
+      }
+    } catch (e) {
+      formMsg.textContent = 'Could not save — ' + describeError(e);
+      return;
+    }
+
+    const wasEditing = !!editingTransactionId;
+    editingTransactionId = null;
+    document.getElementById('mlFormSubmitBtn').textContent = 'Add to ledger';
+    document.getElementById('mlCancelEditBtn').style.display = 'none';
+    selectedLedgerDate = date;
+    resetTransactionForm();
+    render();
+  });
+
+  // ---------- Filters ----------
+  const searchInput = document.getElementById('mlSearch');
+  const filterType = document.getElementById('mlFilterType');
+  const filterMethod = document.getElementById('mlFilterMethod');
+  [searchInput, filterType, filterMethod].forEach((el) => el.addEventListener('input', () => { render(); }));
+
+  // ---------- Reset ----------
+  const resetBtn = document.getElementById('mlResetBtn');
+  let resetArmed = false;
+  let resetArmTimer = null;
+  resetBtn.addEventListener('click', async () => {
+    if (!resetArmed) {
+      resetArmed = true;
+      resetBtn.textContent = 'Click again to confirm';
+      resetArmTimer = setTimeout(() => {
+        resetArmed = false;
+        resetBtn.textContent = 'Clear all data';
+      }, 4000);
+      return;
+    }
+    clearTimeout(resetArmTimer);
+    resetArmed = false;
+    resetBtn.textContent = 'Clear all data';
+    try {
+      await deleteAllTransactionRows(currentAccountId);
+    } catch (e) {
+      showSaveError('Could not clear your transactions.', e);
+      return;
+    }
+    transactions = [];
+    render();
+  });
+
+  // ---------- Delete single ----------
+  async function deleteEntry(id) {
+    try {
+      await deleteTransactionRow(id);
+    } catch (e) {
+      showSaveError('Could not delete that entry.', e);
+      return;
+    }
+    transactions = transactions.filter((t) => t.id !== id);
+    render();
+  }
+  window.mlDeleteEntry = deleteEntry;
+
+  // ---------- Render (Transactions tab) ----------
+  function computeBalances(excludeOpening) {
+    let cash = 0, online = 0;
+    transactions.forEach((t) => {
+      if (t.type === 'transfer') {
+        cash += t.cashAmount;
+        online += t.onlineAmount;
+      } else {
+        const sign = t.type === 'income' ? 1 : -1;
+        cash += sign * t.cashAmount;
+        online += sign * t.onlineAmount;
+      }
+    });
+    if (!excludeOpening) {
+      cash += (opening.cash || 0);
+      online += (opening.online || 0);
+    }
+    return { cash: round2(cash), online: round2(online), total: round2(cash + online) };
+  }
+
+  function render() {
+    const bal = computeBalances();
+    document.getElementById('mlCashBal').textContent = fmt(bal.cash);
+    document.getElementById('mlOnlineBal').textContent = fmt(bal.online);
+    document.getElementById('mlTotalBal').textContent = fmt(bal.total);
+    let breakdown = fmt(bal.cash) + (bal.online < 0 ? ' − ' + fmt(Math.abs(bal.online)) : ' + ' + fmt(bal.online)) + ' online';
+    const cap = monthlyCap();
+    if (cap !== null) breakdown += ' · budget ' + fmt(cap);
+    document.getElementById('mlBreakdown').textContent = breakdown;
+    renderSummaryPanel();
+
+    const q = searchInput.value.trim().toLowerCase();
+    const ft = filterType.value;
+    const fm = filterMethod.value;
+
+    const filtered = transactions.filter((t) => {
+      if (q && !t.desc.toLowerCase().includes(q)) return false;
+      if (ft !== 'all' && t.type !== ft) return false;
+      if (fm === 'cash' && !(t.cashAmount > 0 && t.onlineAmount === 0)) return false;
+      if (fm === 'online' && !(t.onlineAmount > 0 && t.cashAmount === 0)) return false;
+      if (fm === 'split' && !(t.cashAmount > 0 && t.onlineAmount > 0)) return false;
+      return true;
+    });
+
+    updateDayNavLabel();
+    const dayItems = filtered.filter((t) => t.date === selectedLedgerDate);
+    const daySpent = round2(dayItems.filter((t) => t.type === 'expense' && t.category !== 'Adjustment').reduce((s, t) => s + (t.total || 0), 0));
+    document.getElementById('mlDaySummary').textContent = dayItems.length
+      ? dayItems.length + ' entr' + (dayItems.length === 1 ? 'y' : 'ies') + ' · Spent ' + fmt(daySpent)
+      : 'No entries for this day';
+
+    const tbody = document.getElementById('mlTableBody');
+    tbody.innerHTML = '';
+
+    if (dayItems.length === 0) {
+      tbody.innerHTML = '<div class="ml-empty">No entries for this day — add one above, or pick a different date.</div>';
+    } else {
+      dayItems.forEach((t) => {
+        const row = document.createElement('div');
+        row.className = 'ml-ledger-row';
+        const metaParts = [];
+        if (t.category) metaParts.push('<span>' + escapeHtml(categoryLabel(t.category)) + '</span>');
+        if (t.cashAmount) metaParts.push('<span class="cash-c">Cash ' + fmt(t.cashAmount) + '</span>');
+        if (t.onlineAmount) metaParts.push('<span class="online-c">Online ' + fmt(t.onlineAmount) + '</span>');
+        row.innerHTML =
+          '<div class="ml-ledger-row-top">' +
+            '<span class="ml-badge ' + t.type + '">' + t.type + '</span>' +
+          '</div>' +
+          '<div class="ml-ledger-desc">' + escapeHtml(t.desc) + '</div>' +
+          '<div class="ml-ledger-meta">' + metaParts.join('') + '</div>' +
+          '<div class="ml-ledger-bottom">' +
+            '<div>' +
+              '<span class="ml-ledger-total">' + fmt(t.total) + '</span>' +
+              inrLine(t.total) +
+            '</div>' +
+            '<div class="ml-row-actions">' +
+              '<button class="ml-edit-entry" title="Edit entry" data-edit="' + t.id + '">✎</button>' +
+              '<button class="ml-del" title="Delete entry" data-id="' + t.id + '">✕</button>' +
+            '</div>' +
+          '</div>';
+        tbody.appendChild(row);
+      });
+      tbody.querySelectorAll('.ml-del').forEach((btn) => {
+        btn.addEventListener('click', () => deleteEntry(btn.dataset.id));
+      });
+      tbody.querySelectorAll('.ml-edit-entry').forEach((btn) => {
+        btn.addEventListener('click', () => openEditTransaction(btn.dataset.edit));
+      });
+    }
+
+    document.getElementById('mlCount').textContent = transactions.length + ' entr' + (transactions.length === 1 ? 'y' : 'ies');
+  }
+
+  // ---------- Day navigator ----------
+  function toLocalDateStr(dt) {
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    const d = String(dt.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+  function todayStr() {
+    return toLocalDateStr(new Date());
+  }
+  let selectedLedgerDate = todayStr();
+
+  function formatDayLabel(dateStr) {
+    if (dateStr === todayStr()) return 'Today';
+    const dt = new Date(dateStr + 'T00:00:00');
+    if (isNaN(dt)) return dateStr;
+    return dt.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  function updateDayNavLabel() {
+    const label = document.getElementById('mlDayLabel');
+    label.textContent = formatDayLabel(selectedLedgerDate);
+    const isToday = selectedLedgerDate === todayStr();
+    label.classList.toggle('is-today', isToday);
+    document.getElementById('mlDayNext').disabled = isToday;
+  }
+  function shiftDay(deltaDays) {
+    const dt = new Date(selectedLedgerDate + 'T00:00:00');
+    dt.setDate(dt.getDate() + deltaDays);
+    const newDateStr = toLocalDateStr(dt);
+    if (newDateStr > todayStr()) return;
+    selectedLedgerDate = newDateStr;
+    render();
+  }
+  document.getElementById('mlDayPrev').addEventListener('click', () => shiftDay(-1));
+  document.getElementById('mlDayNext').addEventListener('click', () => shiftDay(1));
+
+  // ---------- Custom calendar (with per-day spend heatmap) ----------
+  let calendarViewYear, calendarViewMonth; // 0-indexed month
+  const calendarModal = document.getElementById('mlCalendarModal');
+
+  function openCalendar() {
+    const dt = new Date(selectedLedgerDate + 'T00:00:00');
+    calendarViewYear = dt.getFullYear();
+    calendarViewMonth = dt.getMonth();
+    renderCalendarGrid();
+    calendarModal.classList.add('active');
+  }
+  function closeCalendar() {
+    calendarModal.classList.remove('active');
+  }
+  document.getElementById('mlDayLabel').addEventListener('click', openCalendar);
+  document.getElementById('mlCalendarCloseBtn').addEventListener('click', closeCalendar);
+  calendarModal.addEventListener('click', (e) => {
+    if (e.target.id === 'mlCalendarModal') closeCalendar();
+  });
+  document.getElementById('mlCalMonthPrev').addEventListener('click', () => {
+    calendarViewMonth--;
+    if (calendarViewMonth < 0) { calendarViewMonth = 11; calendarViewYear--; }
+    renderCalendarGrid();
+  });
+  document.getElementById('mlCalMonthNext').addEventListener('click', () => {
+    calendarViewMonth++;
+    if (calendarViewMonth > 11) { calendarViewMonth = 0; calendarViewYear++; }
+    renderCalendarGrid();
+  });
+
+  function renderCalendarGrid() {
+    document.getElementById('mlCalMonthLabel').textContent =
+      new Date(calendarViewYear, calendarViewMonth, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+    // Spend-per-day totals across ALL of this account's transactions (not just filtered results)
+    const spendByDate = {};
+    transactions.forEach((t) => {
+      if (t.type !== 'expense' || t.category === 'Adjustment') return;
+      spendByDate[t.date] = round2((spendByDate[t.date] || 0) + (t.total || 0));
+    });
+    const daysInMonth = new Date(calendarViewYear, calendarViewMonth + 1, 0).getDate();
+    const monthDateStrs = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      monthDateStrs.push(calendarViewYear + '-' + String(calendarViewMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0'));
+    }
+    const maxSpend = Math.max(0, ...monthDateStrs.map((ds) => spendByDate[ds] || 0));
+
+    const firstWeekday = new Date(calendarViewYear, calendarViewMonth, 1).getDay();
+    const grid = document.getElementById('mlCalendarGrid');
+    grid.innerHTML = '';
+
+    for (let i = 0; i < firstWeekday; i++) {
+      const blank = document.createElement('div');
+      blank.className = 'ml-calendar-day is-blank';
+      grid.appendChild(blank);
+    }
+
+    monthDateStrs.forEach((dateStr, idx) => {
+      const dayNum = idx + 1;
+      const spend = spendByDate[dateStr] || 0;
+      const ratio = maxSpend > 0 ? spend / maxSpend : 0;
+      const isFuture = dateStr > todayStr();
+      const cell = document.createElement('div');
+      cell.className = 'ml-calendar-day' + (isFuture ? ' is-future' : '');
+      if (dateStr === todayStr()) cell.classList.add('is-today');
+      if (dateStr === selectedLedgerDate) cell.classList.add('is-selected');
+      if (ratio > 0 && !isFuture) cell.style.background = 'rgba(229,120,122,' + (0.12 + ratio * 0.63).toFixed(2) + ')';
+      cell.innerHTML = '<span>' + dayNum + '</span>' + (spend > 0 && !isFuture ? '<span class="ml-calendar-day-amt">' + fmt(spend) + '</span>' : '');
+      if (!isFuture) {
+        cell.addEventListener('click', () => {
+          selectedLedgerDate = dateStr;
+          closeCalendar();
+          render();
+        });
+      }
+      grid.appendChild(cell);
+    });
+  }
+
+  function formatDate(d) {
+    const dt = new Date(d + 'T00:00:00');
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  const ML_CATEGORY_EMOJI = {
+    'General': '📁', 'Food': '🍔', 'Transport': '🚗', 'Shopping': '🛍️',
+    'Bills': '🧾', 'Salary': '💼', 'Health': '🏥', 'Entertainment': '🎬',
+    'Other': '📦', 'Transfer': '🔀', 'Adjustment': '⚖️'
+  };
+  function categoryLabel(cat) {
+    if (!cat) return '';
+    const emoji = ML_CATEGORY_EMOJI[cat];
+    return (emoji ? emoji + ' ' : '') + cat;
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s == null ? '' : s;
+    return div.innerHTML;
+  }
+
+  // ---------- Monthly budget box ----------
+  function currentMonthKey() {
+    const now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  }
+  function monthLabel(monthKey) {
+    const [y, m] = monthKey.split('-').map(Number);
+    const d = new Date(y, m - 1, 1);
+    return d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  }
+  function renderMonthCard() {
+    const key = currentMonthKey();
+    document.getElementById('mlMonthLabel').textContent = monthLabel(key);
+    const val = monthlyBalances[key];
+    const amtEl = document.getElementById('mlMonthBal');
+    const bdEl = document.getElementById('mlMonthBreakdown');
+    if (!val) {
+      amtEl.textContent = 'Not set';
+      bdEl.textContent = '';
+    } else {
+      const total = round2((val.cash || 0) + (val.online || 0));
+      amtEl.textContent = fmt(total);
+      bdEl.textContent = fmt(val.cash || 0) + ' cash + ' + fmt(val.online || 0) + ' online';
+    }
+  }
+
+  const monthEditBtn = document.getElementById('mlEditMonth');
+  const monthRow = document.getElementById('mlMonthEditRow');
+  const monthCashInput = document.getElementById('mlMonthCashInput');
+  const monthOnlineInput = document.getElementById('mlMonthOnlineInput');
+  const monthOk = document.getElementById('mlMonthEditOk');
+  const monthCancel = document.getElementById('mlMonthEditCancel');
+  const monthErr = document.getElementById('mlMonthEditErr');
+
+  function openMonthEdit() {
+    const existing = monthlyBalances[currentMonthKey()] || {};
+    monthCashInput.value = existing.cash != null ? existing.cash : '';
+    monthOnlineInput.value = existing.online != null ? existing.online : '';
+    monthRow.classList.add('active');
+    document.getElementById('mlMonthEditHint').style.display = 'block';
+    monthErr.textContent = '';
+    monthCashInput.focus();
+  }
+  function closeMonthEdit() {
+    monthRow.classList.remove('active');
+    document.getElementById('mlMonthEditHint').style.display = 'none';
+    monthErr.textContent = '';
+  }
+  async function confirmMonthEdit() {
+    const cashVal = Number(monthCashInput.value || 0);
+    const onlineVal = Number(monthOnlineInput.value || 0);
+    if (isNaN(cashVal) || isNaN(onlineVal)) { monthErr.textContent = 'Enter valid numbers.'; return; }
+    if (cashVal < 0 || onlineVal < 0) { monthErr.textContent = 'Amounts can\'t be negative.'; return; }
+    const key = currentMonthKey();
+    const cashDiff = round2(cashVal - computeBalances().cash);
+    const onlineDiff = round2(onlineVal - computeBalances().online);
+    monthErr.textContent = 'Saving…';
+    try {
+      await upsertMonthlyBalance(currentAccountId, key, cashVal, onlineVal);
+      await applyBalanceAdjustment('cash', cashDiff);
+      await applyBalanceAdjustment('online', onlineDiff);
+    } catch (e) {
+      monthErr.textContent = 'Could not save — ' + describeError(e);
+      return;
+    }
+    monthlyBalances[key] = { cash: cashVal, online: onlineVal };
+    closeMonthEdit();
+    renderMonthCard();
+    render();
+  }
+  monthEditBtn.addEventListener('click', () => {
+    if (monthRow.classList.contains('active')) { closeMonthEdit(); } else { openMonthEdit(); }
+  });
+  monthOk.addEventListener('click', confirmMonthEdit);
+  monthCancel.addEventListener('click', closeMonthEdit);
+  [monthCashInput, monthOnlineInput].forEach((inp) => {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); confirmMonthEdit(); }
+      if (e.key === 'Escape') { e.preventDefault(); closeMonthEdit(); }
+    });
+  });
+
+  // ---------- Init ----------
+  applyTypeUI();
+  updateSplitVisual();
+
+  fetchLiveRates();
+
+  (async function initAuth() {
+    try {
+      const raw = localStorage.getItem(LASTUSER_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.accountKey) {
+          if (saved.expiresAt && Date.now() > saved.expiresAt) {
+            try { localStorage.removeItem(LASTUSER_KEY); } catch (e) { /* best-effort */ }
+            document.getElementById('mlLoginName').value = saved.name || '';
+            document.getElementById('mlLoginMsg').textContent = 'Your session expired after 1 hour — please sign in again.';
+          } else {
+            const row = await findAccountByKey(saved.accountKey);
+            if (row) {
+              currentAccountId = row.id;
+              currentAccountKey = row.account_key;
+              currentUserName = saved.name || row.name;
+              currentCurrencySymbol = row.currency_symbol || '₹';
+              currentCurrencyRate = Number(row.currency_rate_to_inr) || 1;
+              applyCurrencyLabels();
+              document.getElementById('mlLoginName').value = currentUserName;
+              document.getElementById('mlLoginScreen').style.display = 'none';
+              document.getElementById('mlAppBody').style.display = 'block';
+              document.getElementById('mlCurrentUserLabel').textContent = currentUserName;
+              const remaining = saved.expiresAt ? (saved.expiresAt - Date.now()) : SESSION_DURATION_MS;
+              scheduleSessionTimeout(Math.max(remaining, 0));
+              await loadAllData();
+              await maybeShowLovePopup();
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // no remembered user, or the lookup failed — the login screen (shown by default) handles this
+    }
+  })();
+})();
+</script>
+</body>
+</html>
